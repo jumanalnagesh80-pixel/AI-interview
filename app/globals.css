@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html, body {
+  background: #06070d;
+  color: #e8ecf3;
+}
+
+body {
+  font-feature-settings: "ss01", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.bg-grid {
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 35%, transparent 75%);
+}
+
+.glass {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.015));
+  border: 1px solid rgba(255,255,255,0.07);
+  backdrop-filter: blur(10px);
+}
+
+.glass-strong {
+  background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025));
+  border: 1px solid rgba(255,255,255,0.1);
+  backdrop-filter: blur(14px);
+}
+
+.text-gradient {
+  background: linear-gradient(90deg, #ffffff 0%, #c5cdff 50%, #6b7eff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-gradient-accent {
+  background: linear-gradient(90deg, #6b7eff, #22d3ee);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.shimmer {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2.4s linear infinite;
+}
+
+.btn-primary {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-b from-brand-500 to-brand-700 px-5 py-2.5 text-sm font-medium text-white shadow-glow ring-1 ring-white/10 transition hover:brightness-110 active:translate-y-px;
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/90 transition hover:bg-white/10;
+}
+
+.btn-soft {
+  @apply inline-flex items-center justify-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm text-white/80 ring-1 ring-white/10 transition hover:bg-white/10;
+}
+
+.card {
+  @apply rounded-2xl border border-white/10 bg-white/[0.03] p-5 shadow-soft;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/80;
+}
+
+/* AI talking pulse rings */
+.pulse-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(107,126,255,0.5);
+  animation: pulseRing 2.4s ease-out infinite;
+}
+.pulse-ring.delay-1 { animation-delay: 0.8s; }
+.pulse-ring.delay-2 { animation-delay: 1.6s; }
+
+@keyframes pulseRing {
+  0% { transform: scale(0.9); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* AI mouth waveform */
+.wave-bar {
+  display: inline-block;
+  width: 3px;
+  margin: 0 1.5px;
+  background: linear-gradient(180deg, #6b7eff, #22d3ee);
+  border-radius: 2px;
+  animation: waveAnim 1s ease-in-out infinite;
+}
+@keyframes waveAnim {
+  0%, 100% { height: 6px; }
+  50% { height: 22px; }
+}
+
+::selection {
+  background: rgba(107,126,255,0.35);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+
+@keyframes blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  94%, 98% { transform: scaleY(0.1); }
+}
