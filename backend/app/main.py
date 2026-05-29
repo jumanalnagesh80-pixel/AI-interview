@@ -13,6 +13,8 @@ from .routers import sessions as sessions_router
 from .routers import exams as exams_router
 from .routers import leaderboard as leaderboard_router
 from .routers import dashboard as dashboard_router
+from .routers import practice as practice_router
+from .routers import analytics as analytics_router
 from .seed import seed
 
 settings = get_settings()
@@ -65,3 +67,5 @@ app.include_router(sessions_router.router)
 app.include_router(exams_router.router)
 app.include_router(leaderboard_router.router)
 app.include_router(dashboard_router.router)
+app.include_router(practice_router.router)
+app.include_router(analytics_router.router)

@@ -106,6 +106,28 @@ export const api = {
     request<any>("/api/score", { method: "POST", body: JSON.stringify(payload), auth: false }),
   resume: (text: string, target: string) =>
     request<any>("/api/resume", { method: "POST", body: JSON.stringify({ text, target }) }),
+
+  // practice
+  practiceNext: (section?: string, count = 8) => {
+    const qs = new URLSearchParams();
+    if (section) qs.set("section", section);
+    qs.set("count", String(count));
+    return request<any>(`/api/practice/next?${qs.toString()}`, { auth: false });
+  },
+  practiceAnswer: (payload: { question_id: string; picked: number; time_taken_ms: number }) =>
+    request<any>("/api/practice/answer", { method: "POST", body: JSON.stringify(payload) }),
+  practiceDaily: () => request<any>("/api/practice/daily", { auth: false }),
+  bookmarksList: () => request<any[]>("/api/practice/bookmarks"),
+  bookmarkAdd: (question_id: string, note = "") =>
+    request<any>("/api/practice/bookmarks", {
+      method: "POST",
+      body: JSON.stringify({ question_id, note }),
+    }),
+  bookmarkRemove: (id: number) =>
+    request<void>(`/api/practice/bookmarks/${id}`, { method: "DELETE" }),
+
+  // analytics
+  analytics: () => request<any>("/api/analytics/me"),
 };
 
 export function isOnline() {

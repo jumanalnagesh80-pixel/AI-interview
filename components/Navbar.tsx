@@ -21,6 +21,8 @@ import {
   Building2,
   CreditCard,
   ClipboardList,
+  Brain,
+  Activity,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
@@ -38,12 +40,14 @@ interface NavItem {
 
 const PRIMARY: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-3.5 w-3.5" /> },
-  { href: "/interview", label: "Face-to-Face", icon: <Video className="h-3.5 w-3.5" /> },
+  { href: "/practice", label: "Practice", icon: <Brain className="h-3.5 w-3.5" /> },
   { href: "/exams", label: "Exams", icon: <GraduationCap className="h-3.5 w-3.5" /> },
+  { href: "/analytics", label: "Analytics", icon: <Activity className="h-3.5 w-3.5" /> },
   { href: "/leaderboard", label: "Leaderboard", icon: <Trophy className="h-3.5 w-3.5" /> },
 ];
 
 const MORE: NavItem[] = [
+  { href: "/interview", label: "Face-to-Face AI", icon: <Video className="h-3.5 w-3.5" /> },
   { href: "/mock", label: "Mock Rounds", icon: <Mic className="h-3.5 w-3.5" /> },
   { href: "/resume", label: "Resume", icon: <FileText className="h-3.5 w-3.5" /> },
   { href: "/companies", label: "Companies", icon: <Building2 className="h-3.5 w-3.5" /> },

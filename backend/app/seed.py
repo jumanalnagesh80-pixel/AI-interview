@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from .database import Base, engine, SessionLocal
 from .models import (
     User, Question, Exam, ExamQuestion, ExamAttempt, Session as SessionModel,
+    Bookmark, PracticeAnswer,
 )
 from .auth import hash_password
 from .seed_data import INTERVIEW_QUESTIONS, EXAMS, DEMO_USERS
@@ -93,6 +94,56 @@ def seed(db: Session) -> None:
             answers=[],
             created_at=datetime.utcnow() - timedelta(days=rng.randint(0, 25)),
         ))
+
+        # synth practice answers (so analytics page is alive on first load)
+        question_ids_by_section: dict[str, list[str]] = {}
+        for ex in EXAMS:
+            for q in ex["questions"]:
+                question_ids_by_section.setdefault(q["section"], []).append(q["id"])
+
+        section_skill = {
+            sec: rng.uniform(0.45, 0.92) for sec in question_ids_by_section
+        }
+        for _ in range(rng.randint(40, 90)):
+            sec = rng.choice(list(question_ids_by_section.keys()))
+            qid = rng.choice(question_ids_by_section[sec])
+            is_correct = rng.random() < section_skill[sec]
+            db.add(PracticeAnswer(
+                user_id=user.id,
+                question_id=qid,
+                section=sec,
+                picked=0 if is_correct else rng.randint(1, 3),
+                is_correct=is_correct,
+                time_taken_ms=rng.randint(8000, 60000),
+                streak_at_answer=0,
+                created_at=datetime.utcnow() - timedelta(
+                    days=rng.randint(0, 27),
+                    hours=rng.randint(0, 23),
+                    minutes=rng.randint(0, 59),
+                ),
+            ))
+
+        # a couple of bookmarks
+        for _ in range(rng.randint(1, 4)):
+            sec = rng.choice(list(question_ids_by_section.keys()))
+            qid = rng.choice(question_ids_by_section[sec])
+            # match the question back to its exam
+            exam_id = next((ex["id"] for ex in EXAMS for q in ex["questions"] if q["id"] == qid), None)
+            if exam_id is None:
+                continue
+            existing = (
+                db.query(Bookmark)
+                .filter(Bookmark.user_id == user.id, Bookmark.question_id == qid)
+                .first()
+            )
+            if existing:
+                continue
+            db.add(Bookmark(
+                user_id=user.id,
+                exam_id=exam_id,
+                question_id=qid,
+                note=rng.choice(["review later", "tricky pivot", "got fooled by phrasing", ""]),
+            ))
 
     db.commit()
 
