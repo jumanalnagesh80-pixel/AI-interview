@@ -36,7 +36,7 @@ export function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-start justify-between gap-3 border-t border-white/5 pt-6 text-xs text-white/40 sm:flex-row sm:items-center">
-          <p>(c) {new Date().getFullYear()} AceTerview AI. Built for students and job seekers.</p>
+          <p>(c) {new Date().getFullYear()} AceTerview AI · A NAGESH JUMANAL project. Built for students and job seekers.</p>
           <p>Crafted with attention to detail. Real-time AI scoring. Privacy-first.</p>
         </div>
       </div>

@@ -15,7 +15,32 @@ from .routers import leaderboard as leaderboard_router
 from .routers import dashboard as dashboard_router
 from .routers import practice as practice_router
 from .routers import analytics as analytics_router
+from .routers import admin as admin_router
 from .seed import seed
+from .config import get_settings as _get_settings
+
+
+def _bootstrap_owner(db) -> None:
+    """Ensure the configured owner exists with role='owner'. Idempotent."""
+    from .auth import hash_password
+    from .models import User as _User
+    s = _get_settings()
+    existing = db.query(_User).filter(_User.email == s.owner_email).first()
+    if existing:
+        if existing.role != "owner":
+            existing.role = "owner"
+            db.commit()
+        return
+    db.add(_User(
+        email=s.owner_email,
+        name=s.owner_name,
+        hashed_password=hash_password(s.owner_password),
+        role="owner",
+        plan="campus",
+        xp=0,
+        streak_days=0,
+    ))
+    db.commit()
 
 settings = get_settings()
 
@@ -26,6 +51,7 @@ async def lifespan(_: FastAPI):
     db = SessionLocal()
     try:
         seed(db)
+        _bootstrap_owner(db)
     except Exception as e:  # don't crash if seeding fails
         print(f"[startup] seed warning: {e}")
     finally:
@@ -69,3 +95,4 @@ app.include_router(leaderboard_router.router)
 app.include_router(dashboard_router.router)
 app.include_router(practice_router.router)
 app.include_router(analytics_router.router)
+app.include_router(admin_router.router)

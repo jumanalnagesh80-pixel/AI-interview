@@ -22,6 +22,7 @@ class UserOut(BaseModel):
     email: EmailStr
     name: str
     plan: str
+    role: str = "user"
     xp: int
     streak_days: int
     avatar_url: str | None = None

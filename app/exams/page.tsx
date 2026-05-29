@@ -26,6 +26,12 @@ import { cn } from "@/lib/utils";
 const CATEGORIES: { id: "all" | ExamCategory; label: string; icon: React.ReactNode }[] = [
   { id: "all", label: "All exams", icon: <Layers className="h-3.5 w-3.5" /> },
   { id: "placement", label: "Placement drives", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "government", label: "Government / UPSC / SSC / Railway", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "banking", label: "Banking / IBPS / SBI / RBI", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "defence", label: "Defence (NDA / CDS)", icon: <Building2 className="h-3.5 w-3.5" /> },
+  { id: "mba", label: "MBA (CAT)", icon: <BookOpen className="h-3.5 w-3.5" /> },
+  { id: "engineering", label: "Engineering (GATE)", icon: <Code2 className="h-3.5 w-3.5" /> },
+  { id: "general", label: "General Awareness", icon: <BookOpen className="h-3.5 w-3.5" /> },
   { id: "aptitude", label: "Aptitude", icon: <Sigma className="h-3.5 w-3.5" /> },
   { id: "reasoning", label: "Reasoning", icon: <GitBranch className="h-3.5 w-3.5" /> },
   { id: "verbal", label: "Verbal English", icon: <BookOpen className="h-3.5 w-3.5" /> },

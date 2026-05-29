@@ -1,7 +1,18 @@
 // Competitive exam data — mirrors backend/app/seed_data.py.
 // This lets the frontend work standalone (no backend required).
 
-export type ExamCategory = "placement" | "aptitude" | "reasoning" | "verbal" | "coding";
+export type ExamCategory =
+  | "placement"
+  | "aptitude"
+  | "reasoning"
+  | "verbal"
+  | "coding"
+  | "government"
+  | "banking"
+  | "defence"
+  | "mba"
+  | "engineering"
+  | "general";
 
 export interface ExamQuestion {
   id: string;
@@ -137,6 +148,50 @@ const PSEUDO: ExamQuestion[] = [
   q("ps-4", "Pseudocode", "Bitwise: 13 & 10 = ?", ["8", "9", "10", "11"], 0, "1101 & 1010 = 1000 = 8.", "Medium"),
 ];
 
+const GK_INDIA: ExamQuestion[] = [
+  q("gk-1", "General Knowledge", "Father of the Indian Constitution?", ["Gandhi", "B. R. Ambedkar", "Nehru", "Patel"], 1, "Dr. B. R. Ambedkar chaired the drafting committee.", "Easy"),
+  q("gk-2", "General Knowledge", "Article that abolishes untouchability?", ["Article 14", "Article 17", "Article 19", "Article 21"], 1, "Article 17 of the Indian Constitution.", "Medium"),
+  q("gk-3", "General Knowledge", "Right to Education Article?", ["Article 21", "Article 21A", "Article 19A", "Article 32"], 1, "Article 21A guarantees free education for ages 6-14.", "Medium"),
+  q("gk-4", "General Knowledge", "First woman Prime Minister of India?", ["Sarojini Naidu", "Pratibha Patil", "Indira Gandhi", "Sushma Swaraj"], 2, "Indira Gandhi.", "Easy"),
+  q("gk-5", "General Knowledge", "'Make in India' was launched in:", ["2012", "2014", "2016", "2018"], 1, "Launched on 25 September 2014.", "Easy"),
+  q("gk-6", "General Knowledge", "Longest river in India?", ["Yamuna", "Brahmaputra", "Ganga", "Godavari"], 2, "Ganga ~2,525 km.", "Easy"),
+  q("gk-7", "General Knowledge", "Constitutional head of state of India?", ["PM", "CJI", "President", "VP"], 2, "President is the head of state.", "Easy"),
+  q("gk-8", "General Knowledge", "ISRO headquarters?", ["Hyderabad", "Bengaluru", "Chennai", "Trivandrum"], 1, "Bengaluru.", "Easy"),
+  q("gk-9", "General Knowledge", "Chandrayaan-3 landed on Moon's:", ["North Pole", "South Pole", "Far side", "Equator"], 1, "Soft-landing near south pole on 23 Aug 2023.", "Medium"),
+  q("gk-10", "General Knowledge", "Composer of 'Jana Gana Mana'?", ["Bankim Chandra", "Tagore", "Sarojini Naidu", "Bose"], 1, "Rabindranath Tagore (1911).", "Easy"),
+  q("gk-11", "General Knowledge", "State with longest coastline?", ["Tamil Nadu", "Kerala", "Andhra Pradesh", "Gujarat"], 3, "Gujarat ~1,600 km.", "Medium"),
+  q("gk-12", "General Knowledge", "GST in India was implemented on:", ["1 Apr 2016", "1 Jul 2017", "1 Apr 2017", "1 Jan 2018"], 1, "1 July 2017.", "Easy"),
+];
+
+const BANKING: ExamQuestion[] = [
+  q("bk-1", "Banking", "RBI was established in:", ["1935", "1947", "1949", "1969"], 0, "1 April 1935 under RBI Act 1934.", "Easy"),
+  q("bk-2", "Banking", "Repo rate is decided by:", ["Finance Ministry", "RBI Governor", "MPC of RBI", "SEBI"], 2, "6-member Monetary Policy Committee.", "Medium"),
+  q("bk-3", "Banking", "Full form of CRR:", ["Credit Reserve Ratio", "Cash Reserve Ratio", "Capital Reserve Ratio", "Cash Receipt Ratio"], 1, "Cash Reserve Ratio.", "Easy"),
+  q("bk-4", "Banking", "PSL stands for:", ["Public Sector Lending", "Priority Sector Lending", "Primary Sector Loans", "Public Service Lending"], 1, "Priority Sector Lending.", "Medium"),
+  q("bk-5", "Banking", "Which is NOT a public-sector bank?", ["SBI", "PNB", "HDFC Bank", "Bank of Baroda"], 2, "HDFC Bank is private.", "Easy"),
+  q("bk-6", "Banking", "NEFT settles transactions:", ["Real time", "Half-hourly batches", "End of day", "T+1"], 1, "24x7 half-hourly batches since 2019.", "Medium"),
+  q("bk-7", "Banking", "Securities market regulator?", ["RBI", "IRDAI", "SEBI", "NABARD"], 2, "SEBI.", "Easy"),
+  q("bk-8", "Banking", "PMJDY is for:", ["Financial inclusion", "Crop insurance", "Pension", "Education loans"], 0, "Pradhan Mantri Jan Dhan Yojana.", "Easy"),
+];
+
+const SCIENCE: ExamQuestion[] = [
+  q("sci-1", "General Science", "SI unit of electric current:", ["Volt", "Ampere", "Ohm", "Watt"], 1, "Ampere.", "Easy"),
+  q("sci-2", "General Science", "Chemical symbol of Sodium:", ["S", "So", "Na", "Sn"], 2, "From Latin 'natrium'.", "Easy"),
+  q("sci-3", "General Science", "pH of neutral water at 25C:", ["0", "7", "10", "14"], 1, "Neutral pH = 7.", "Easy"),
+  q("sci-4", "General Science", "Most abundant gas in Earth's atmosphere:", ["Oxygen", "CO2", "Nitrogen", "Argon"], 2, "Nitrogen ~78%.", "Easy"),
+  q("sci-5", "General Science", "Newton's second law:", ["F=mv", "F=ma", "F=md", "F=Et"], 1, "F = m * a.", "Easy"),
+  q("sci-6", "General Science", "DNA stands for:", ["Deoxyribonucleic Acid", "Diribonucleic Acid", "Dinitric Acid", "Deoxyribosic Acid"], 0, "Deoxyribonucleic Acid.", "Easy"),
+];
+
+const COMPUTER_AWARENESS: ExamQuestion[] = [
+  q("ca-1", "Computer Awareness", "1 KB equals:", ["100 B", "1000 B", "1024 B", "2048 B"], 2, "Binary kilobyte.", "Easy"),
+  q("ca-2", "Computer Awareness", "Which is NOT an OS?", ["Linux", "Oracle", "Windows", "macOS"], 1, "Oracle is a DBMS.", "Easy"),
+  q("ca-3", "Computer Awareness", "Full form of HTTP:", ["HyperText Transfer Protocol", "HighText Transfer Process", "Hyper Transfer Text Protocol", "HyperText Transmission Process"], 0, "HyperText Transfer Protocol.", "Easy"),
+  q("ca-4", "Computer Awareness", "Volatile memory is:", ["ROM", "Hard disk", "RAM", "SSD"], 2, "RAM loses contents on power off.", "Easy"),
+  q("ca-5", "Computer Awareness", "An IP address:", ["Encrypts data", "Identifies device on network", "Compresses files", "Stores files"], 1, "Identifies a device on a network.", "Easy"),
+  q("ca-6", "Computer Awareness", "Universal paste shortcut on Windows:", ["Ctrl+P", "Ctrl+V", "Ctrl+X", "Ctrl+C"], 1, "Ctrl+V pastes.", "Easy"),
+];
+
 function buildExam(
   id: string,
   name: string,
@@ -214,6 +269,101 @@ export const EXAMS: Exam[] = [
     "Data structures, algorithms, complexity, OOP, SQL fundamentals.",
     ["Programming"], "from-fuchsia-500 to-purple-600", "Code2",
     30, 8, "Medium", [CODING_MCQ]),
+
+  // ---------- Indian Government / Banking / Defence Exams ----------
+  buildExam("upsc-prelims", "UPSC CSE Prelims (GS-I)", "UPSC", "government",
+    "UPSC Civil Services Preliminary - GS Paper-I (history, polity, science, current affairs).",
+    ["General Knowledge", "General Science", "Quantitative", "Logical Reasoning"],
+    "from-amber-500 to-rose-500", "Building2",
+    120, 24, "Hard", [GK_INDIA, SCIENCE, QUANT, LOGICAL]),
+  buildExam("ssc-cgl", "SSC CGL Tier-1", "SSC", "government",
+    "Staff Selection Commission Combined Graduate Level - Tier 1.",
+    ["Quantitative", "Logical Reasoning", "Verbal English", "General Knowledge"],
+    "from-emerald-500 to-cyan-500", "Building2",
+    60, 25, "Medium", [QUANT, LOGICAL, VERBAL, GK_INDIA]),
+  buildExam("ssc-chsl", "SSC CHSL", "SSC", "government",
+    "Combined Higher Secondary Level (10+2) - aptitude + reasoning + English + GK.",
+    ["Quantitative", "Logical Reasoning", "Verbal English", "General Knowledge"],
+    "from-teal-500 to-cyan-500", "Building2",
+    60, 22, "Medium", [QUANT, LOGICAL, VERBAL, GK_INDIA]),
+  buildExam("ibps-po", "IBPS PO Prelims", "IBPS", "banking",
+    "Probationary Officer prelims - English, reasoning, quantitative aptitude.",
+    ["Verbal English", "Logical Reasoning", "Quantitative"],
+    "from-blue-500 to-cyan-500", "Building2",
+    60, 22, "Medium", [VERBAL, LOGICAL, QUANT]),
+  buildExam("ibps-clerk", "IBPS Clerk Prelims", "IBPS", "banking",
+    "Clerk prelims - aptitude + reasoning + English at speed.",
+    ["Quantitative", "Logical Reasoning", "Verbal English"],
+    "from-cyan-500 to-blue-500", "Building2",
+    60, 22, "Medium", [QUANT, LOGICAL, VERBAL]),
+  buildExam("sbi-po", "SBI PO Prelims", "SBI", "banking",
+    "State Bank of India PO prelims - speed + accuracy heavy.",
+    ["Verbal English", "Quantitative", "Logical Reasoning"],
+    "from-blue-700 to-indigo-500", "Building2",
+    60, 22, "Hard", [VERBAL, QUANT, LOGICAL]),
+  buildExam("rbi-grade-b", "RBI Grade B (Phase 1)", "RBI", "banking",
+    "RBI officer entry - banking awareness + reasoning + quant + English.",
+    ["Banking", "General Knowledge", "Quantitative", "Logical Reasoning", "Verbal English"],
+    "from-indigo-500 to-blue-700", "Building2",
+    60, 24, "Hard", [BANKING, GK_INDIA, QUANT, LOGICAL, VERBAL]),
+  buildExam("nabard-grade-a", "NABARD Grade-A", "NABARD", "banking",
+    "Assistant Manager (Grade A) prelims with rural development + economy focus.",
+    ["Banking", "General Knowledge", "Quantitative", "Logical Reasoning"],
+    "from-emerald-500 to-teal-600", "Building2",
+    90, 22, "Hard", [BANKING, GK_INDIA, QUANT, LOGICAL]),
+  buildExam("rrb-ntpc", "RRB NTPC", "Indian Railways", "government",
+    "Railway Recruitment Board Non-Technical Popular Categories - Stage 1.",
+    ["General Knowledge", "Quantitative", "Logical Reasoning", "General Science"],
+    "from-orange-500 to-red-500", "Building2",
+    90, 24, "Medium", [GK_INDIA, QUANT, LOGICAL, SCIENCE]),
+  buildExam("rrb-group-d", "RRB Group D", "Indian Railways", "government",
+    "Railway Group D - mathematics, science, GK, reasoning.",
+    ["Quantitative", "General Science", "General Knowledge", "Logical Reasoning"],
+    "from-orange-600 to-amber-500", "Building2",
+    90, 22, "Medium", [QUANT, SCIENCE, GK_INDIA, LOGICAL]),
+  buildExam("ssc-gd", "SSC GD Constable", "SSC", "government",
+    "General Duty Constable - reasoning, math, GK, English.",
+    ["Logical Reasoning", "Quantitative", "General Knowledge", "Verbal English"],
+    "from-rose-500 to-pink-500", "Building2",
+    60, 22, "Easy", [LOGICAL, QUANT, GK_INDIA, VERBAL]),
+  buildExam("nda", "NDA & NA", "UPSC", "defence",
+    "National Defence Academy entrance - mathematics + GAT.",
+    ["Quantitative", "General Knowledge", "General Science", "Verbal English"],
+    "from-slate-500 to-blue-600", "Building2",
+    150, 24, "Hard", [QUANT, GK_INDIA, SCIENCE, VERBAL]),
+  buildExam("cds", "CDS Examination", "UPSC", "defence",
+    "Combined Defence Services - English, GK, elementary mathematics.",
+    ["Verbal English", "General Knowledge", "Quantitative"],
+    "from-blue-700 to-slate-500", "Building2",
+    120, 22, "Hard", [VERBAL, GK_INDIA, QUANT]),
+  buildExam("cat", "CAT Mock", "IIMs", "mba",
+    "Common Admission Test - VARC, DI/LR, Quant.",
+    ["Verbal English", "Logical Reasoning", "Quantitative"],
+    "from-purple-600 to-indigo-700", "Building2",
+    120, 24, "Hard", [VERBAL, LOGICAL, QUANT]),
+  buildExam("gate-cs", "GATE CSE Mock", "IISc/IITs", "engineering",
+    "GATE Computer Science - DSA, OS, DBMS, networks, programming MCQ.",
+    ["Programming", "Pseudocode", "Quantitative", "Logical Reasoning"],
+    "from-indigo-500 to-fuchsia-600", "Building2",
+    120, 24, "Hard", [CODING_MCQ, PSEUDO, QUANT, LOGICAL]),
+
+  // Standalone topic mocks
+  buildExam("gk-india-mix", "GK & Current Affairs (India)", null, "general",
+    "Indian polity, history, geography, science and recent affairs.",
+    ["General Knowledge"], "from-amber-500 to-orange-500", "BookOpen",
+    25, 12, "Medium", [GK_INDIA]),
+  buildExam("general-science", "General Science", null, "general",
+    "Physics, chemistry, biology fundamentals.",
+    ["General Science"], "from-teal-500 to-emerald-500", "Sigma",
+    20, 6, "Easy", [SCIENCE]),
+  buildExam("computer-awareness", "Computer Awareness", null, "general",
+    "Operating systems, networking, hardware basics for banking + SSC.",
+    ["Computer Awareness"], "from-fuchsia-500 to-violet-600", "Code2",
+    20, 6, "Easy", [COMPUTER_AWARENESS]),
+  buildExam("banking-awareness", "Banking Awareness", null, "banking",
+    "RBI, monetary policy, schemes - for IBPS / SBI / NABARD.",
+    ["Banking"], "from-blue-500 to-cyan-500", "Building2",
+    20, 8, "Medium", [BANKING]),
 ];
 
 export function getExam(id: string): Exam | undefined {
@@ -226,4 +376,10 @@ export const CATEGORY_LABEL: Record<ExamCategory, string> = {
   reasoning: "Logical Reasoning",
   verbal: "Verbal English",
   coding: "Coding & DSA",
+  government: "Government Exams (UPSC / SSC / Railway)",
+  banking: "Banking & Finance (IBPS / SBI / RBI)",
+  defence: "Defence Services (NDA / CDS)",
+  mba: "MBA Entrance (CAT / XAT)",
+  engineering: "Engineering (GATE / ESE)",
+  general: "General Awareness",
 };
