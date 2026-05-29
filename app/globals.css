@@ -122,3 +122,87 @@ body {
   0%, 92%, 100% { transform: scaleY(1); }
   94%, 98% { transform: scaleY(0.1); }
 }
+
+
+
+/* --------- futuristic helpers --------- */
+
+/* Neon ring border that pulses subtly. Apply on hover for cards. */
+.neon-ring {
+  position: relative;
+}
+.neon-ring::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(107,126,255,0.6), rgba(34,211,238,0.5), rgba(217,70,239,0.4));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+.neon-ring:hover::before {
+  opacity: 1;
+  animation: neonShift 3s linear infinite;
+}
+@keyframes neonShift {
+  0%, 100% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(40deg); }
+}
+
+/* Infinite horizontal marquee track. Children should be duplicated for seamless loop. */
+.marquee {
+  display: flex;
+  width: max-content;
+  animation: marqueeScroll 30s linear infinite;
+}
+.marquee-mask {
+  -webkit-mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+          mask: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+@keyframes marqueeScroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Animated value counter (text only). Apply to span and add data-value. */
+.counter {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Soft glow text */
+.glow-text {
+  text-shadow: 0 0 30px rgba(107,126,255,0.45), 0 0 8px rgba(107,126,255,0.3);
+}
+
+/* "Live" dot that pulses */
+.live-dot {
+  position: relative;
+}
+.live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  opacity: 0.6;
+  animation: liveRing 1.6s ease-out infinite;
+}
+@keyframes liveRing {
+  0% { transform: scale(0.7); opacity: 0.7; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Conic gradient spinner */
+.conic-loader {
+  background: conic-gradient(from 0deg, transparent 0%, rgba(107,126,255,0.9) 80%, transparent 100%);
+  animation: conicSpin 1.4s linear infinite;
+  border-radius: 50%;
+}
+@keyframes conicSpin {
+  to { transform: rotate(360deg); }
+}

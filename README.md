@@ -1,90 +1,122 @@
 # AceTerview AI
 
-The most advanced AI interview prep platform - face-to-face AI interviews, resume analysis, voice + body language scoring, real-time feedback, and 8+ company simulators (Google, Amazon, Microsoft, Meta, TCS, Infosys, Wipro, Accenture).
+The most advanced AI interview prep platform — face-to-face AI interviews, resume analysis, voice + body language scoring, real-time feedback, **competitive-exam mocks (TCS NQT, Infosys, Wipro, Capgemini, Cognizant, Accenture)**, leaderboard, and a full Python FastAPI backend with SQLite.
 
-## Highlights
+## Surfaces
 
-- **Face-to-Face AI Interview** (`/interview`) - Aria, the animated AI interviewer, speaks real questions via Web Speech API, listens to you in real time, and shows live signal bars for clarity, pace, eye contact, and posture.
-- **Resume Analyzer** (`/resume`) - drag-and-drop PDF/DOCX, ATS-aware scoring, missing-keyword detection per target role, prioritized action plan.
-- **Mock Rounds** (`/mock`) - HR / Behavioral / Technical / System Design with STAR coaching and inline 6-axis scoring.
-- **Dashboard** (`/dashboard`) - readiness score, skill radar, 12-week streak heatmap, score trend.
-- **Reports** (`/reports`) - per-session breakdowns with downloadable summaries.
-- **Companies** (`/companies`) - tailored loops with what-to-expect, tips, and sample questions per company.
-- **Pricing** (`/pricing`) - free tier + $9 Pro + campus tier.
+| Route | What's there |
+|---|---|
+| `/` | Landing — animated AI hero, animated counters, infinite companies marquee, exam banner, comparison vs other AI sites |
+| `/interview` | Flagship: face-to-face AI interview (real webcam + Web Speech API STT/TTS, live signals) |
+| `/exams` | Competitive-exam hub with category filters, search, gradient cards |
+| `/exams/[id]` | Timed mock exam with question palette, mark-for-review, sectional + per-question result review with explanations |
+| `/leaderboard` | Top-3 podium + full ranking table with XP, sessions, avg/best score, trend |
+| `/dashboard` | Readiness ring, score trend, skill radar, streak heatmap, recent sessions |
+| `/resume` | ATS-aware resume analyzer with prioritised action plan |
+| `/mock` | HR / Behavioral / Technical / System Design rounds with STAR coaching |
+| `/reports` | Per-session detailed reports with downloadable export |
+| `/companies` | Per-company simulators (Google, Amazon, Microsoft, Meta, TCS, Infosys, Wipro, Accenture) |
+| `/pricing` | Free / $9 Pro / Campus tiers + FAQ |
+| `/login`, `/signup` | Split-screen auth with futuristic AI showcase, password strength meter |
 
 ## Tech stack
 
-- **Next.js 14** (App Router) + **TypeScript**
-- **Tailwind CSS** with custom theme (brand indigo + cyan accent, glass + gradient utilities)
-- **lucide-react** icons, **framer-motion** for transitions, **clsx + tailwind-merge** for class composition
-- **Web Speech API** (SpeechRecognition + speechSynthesis) for live voice interview
-- **getUserMedia** for webcam capture
-- **Custom SVG charts** (no chart library): ProgressRing, SparkLine, SkillRadar, StreakHeatmap
+**Frontend** — Next.js 14 (App Router) + TypeScript + Tailwind CSS with custom dark theme, Lucide icons, framer-motion (installed), Web Speech API + getUserMedia for face-to-face mode, custom SVG charts (no chart library).
 
-## Getting started
+**Backend** — Python 3.12 + FastAPI + SQLAlchemy 2 + SQLite (Postgres-ready), JWT auth (passlib + bcrypt + python-jose), Pydantic v2 schemas, Docker support.
+
+## Quick start
+
+### Frontend (works standalone with seeded mock data)
 
 ```bash
 npm install
-npm run dev
+npm run dev          # http://localhost:3000
 ```
 
-Open http://localhost:3000.
-
-## Optional: enable real LLM scoring
-
-The app works fully offline using built-in heuristics. To enable LLM-powered scoring and dynamic question generation, set:
+### Backend (optional but adds persistence + auth + leaderboard)
 
 ```bash
-OPENAI_API_KEY=sk-...
+cd backend
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+
+uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 ```
 
-API routes that auto-upgrade when the key is present:
+Wire the frontend to the backend by setting in `.env.local`:
 
-- `POST /api/score` - scores an answer.
-- `POST /api/resume` - analyzes a resume against a target role.
-- `POST /api/questions` - generates tailored questions for a round/role/company/JD.
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-If the key is missing or the LLM call fails, the routes silently fall back to local heuristics.
+If the backend isn't reachable or the env var isn't set, the UI silently falls back to local data + localStorage so demos always work.
+
+### Docker
+
+```bash
+docker build -t aceterview-api ./backend
+docker run -p 8000:8000 -e JWT_SECRET=mysecret aceterview-api
+```
+
+## Backend endpoints
+
+- `POST /api/auth/register` · `POST /api/auth/login` · `GET /api/auth/me`
+- `GET /api/questions` · `POST /api/questions`
+- `POST /api/score` — heuristic answer scoring (LLM-ready hook)
+- `POST /api/resume` — ATS resume analysis
+- `GET /api/sessions` · `POST /api/sessions` · `GET /api/sessions/{id}`
+- `GET /api/exams` · `GET /api/exams/{id}` · `POST /api/exams/{id}/submit` · `GET /api/exams/{id}/attempts`
+- `GET /api/leaderboard?period=all|week|month`
+- `GET /api/dashboard/stats`
+
+Full Swagger UI at <http://localhost:8000/docs>.
+
+## Seeded content
+
+- **Interview questions:** HR, Behavioral, Technical, System Design, Coding rounds.
+- **Competitive exams:** TCS NQT, Infosys SP/DSE, Wipro Elite NLTH, Capgemini, Cognizant GenC, Accenture Cognitive, plus standalone tracks for Quantitative Aptitude, Logical Reasoning, Verbal English, Coding & DSA MCQ — **10 exams, ~160 MCQs total** with explanations.
+- **10 demo users** (Priya R., Arjun S., Mei L., Karan P., Diego M., Sara K., Ananya B., Ravi T., Lin C., Noor A.) with synthetic sessions so the leaderboard is alive on first load.
 
 ## Project structure
 
 ```
-app/
-  layout.tsx           Root layout with sticky navbar, footer, animated background
-  page.tsx             Landing (hero + features + comparison + companies + testimonials)
-  dashboard/page.tsx   Dashboard with charts and progress
-  interview/page.tsx   Flagship face-to-face AI interview (live voice + webcam)
-  mock/page.tsx        Text-based mock rounds
-  resume/page.tsx      Resume analyzer
-  reports/page.tsx     Detailed reports with export
-  companies/page.tsx   Per-company simulators
-  pricing/page.tsx     Pricing + FAQ
-  api/
-    questions/route.ts
-    score/route.ts
-    resume/route.ts
+app/                       # Next.js App Router
+  layout.tsx, page.tsx     # Root + landing
+  dashboard/, interview/, mock/, resume/, reports/, companies/, pricing/
+  exams/, exams/[id]/      # Competitive exams hub + taker
+  leaderboard/, login/, signup/
+  api/                     # Local Next API fallback (questions, score, resume)
 
-components/
-  AIAvatar.tsx         Animated talking AI avatar
-  WebcamPanel.tsx      getUserMedia preview with status overlay
-  ProgressRing.tsx     Gradient SVG progress ring
-  SparkLine.tsx        Smoothed gradient line chart
-  SkillRadar.tsx       SVG hexagon radar
-  StreakHeatmap.tsx    GitHub-style streak grid
-  Navbar.tsx, Footer.tsx, Logo.tsx, BackgroundFX.tsx, SectionHeader.tsx, StatCard.tsx
+components/                # AIAvatar, WebcamPanel, ProgressRing, SparkLine,
+                           # SkillRadar, StreakHeatmap, AnimatedCounter,
+                           # AuthShell, Navbar, Footer, BackgroundFX, Logo
 
 lib/
-  data.ts              Question bank, companies, sessions, testimonials
-  scoring.ts           Local heuristic scorer (clarity / relevance / depth / etc)
-  speech.ts            Web Speech API wrappers (TTS + STT) with fallbacks
-  utils.ts             cn(), clamp, pct
+  data.ts                  # Question bank, companies, sessions, testimonials
+  exams.ts                 # 10 competitive exams (mirror of backend seed)
+  leaderboard.ts           # Demo leaderboard rows for offline mode
+  api.ts                   # Backend client + JWT in localStorage + offline detect
+  scoring.ts, speech.ts, utils.ts
+
+backend/                   # FastAPI + SQLAlchemy + SQLite
+  Dockerfile, requirements.txt, README.md, .env.example
+  app/
+    main.py, config.py, database.py, models.py, schemas.py, auth.py, scoring.py
+    seed.py, seed_data.py
+    routers/
+      auth.py, questions.py, score.py, resume.py, sessions.py,
+      exams.py, leaderboard.py, dashboard.py
 ```
+
+## Optional: enable LLM scoring
+
+Both the Next.js API routes and the FastAPI `score` / `resume` / `questions` endpoints upgrade automatically when `OPENAI_API_KEY` is set. Otherwise they use local heuristics.
 
 ## Browser support for the live interview
 
-Real-time voice features (TTS + STT) work best in Chromium-based browsers (Chrome, Edge, Brave) and Safari. If unsupported, the UI gracefully falls back to a text input and silent question display.
-
-Webcam capture uses standard `getUserMedia` and works wherever camera access is granted. Video and audio are processed in the browser only - nothing is uploaded.
+Voice features (TTS + STT) work best in Chromium-based browsers and Safari. If unsupported, the UI gracefully falls back to a text input. Webcam capture uses standard `getUserMedia` and works wherever camera access is granted. Video and audio are processed in the browser only — nothing is uploaded.
 
 ## License
 
