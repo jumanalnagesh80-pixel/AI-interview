@@ -17,7 +17,7 @@ The most advanced AI interview prep platform — face-to-face AI interviews, res
 | `/reports` | Per-session detailed reports with downloadable export |
 | `/companies` | Per-company simulators (Google, Amazon, Microsoft, Meta, TCS, Infosys, Wipro, Accenture) |
 | `/pricing` | Free / $9 Pro / Campus tiers + FAQ |
-| `/login`, `/signup` | Split-screen auth with futuristic AI showcase, password strength meter |
+| `/login`, `/signup` | Unified auth experience: animated tab pill, canvas particle background, glassmorphic card with rotating conic border, floating-label inputs, password strength meter, social buttons, success burst animation, rotating testimonial showcase |
 
 ## Tech stack
 
@@ -25,16 +25,39 @@ The most advanced AI interview prep platform — face-to-face AI interviews, res
 
 **Backend** — Python 3.12 + FastAPI + SQLAlchemy 2 + SQLite (Postgres-ready), JWT auth (passlib + bcrypt + python-jose), Pydantic v2 schemas, Docker support.
 
-## Quick start
+## One-command quick start
 
-### Frontend (works standalone with seeded mock data)
+The repo ships with **three different "single command" ways** to run the whole stack — pick whichever fits your environment.
+
+### 1. Bash bootstrap (zero ceremony)
+
+```bash
+./start.sh
+```
+
+It installs frontend deps if needed, creates the Python venv for the backend, writes `.env.local` pointing at the local API, and runs both processes side-by-side with `concurrently`. Frontend at http://localhost:3000, API + Swagger at http://localhost:8000/docs.
+
+### 2. NPM script
 
 ```bash
 npm install
-npm run dev          # http://localhost:3000
+npm run backend:install        # one-time pip install
+npm run dev:all                # web + api together with colored prefixes
 ```
 
-### Backend (optional but adds persistence + auth + leaderboard)
+Other scripts available: `npm run dev`, `npm run backend:dev`, `npm run start:all`.
+
+### 3. Docker Compose (single command, production-ready)
+
+```bash
+docker compose up --build
+```
+
+Brings up `aceterview-api` (FastAPI on :8000) and `aceterview-web` (Next.js on :3000) on a shared network. SQLite data persists in a named volume. The web service waits for the API healthcheck before starting.
+
+---
+
+### Backend solo
 
 ```bash
 cd backend
@@ -45,20 +68,14 @@ cp .env.example .env
 uvicorn app.main:app --reload --port 8000   # http://localhost:8000/docs
 ```
 
-Wire the frontend to the backend by setting in `.env.local`:
+### Frontend solo
 
 ```bash
-NEXT_PUBLIC_API_URL=http://localhost:8000
+npm install
+npm run dev          # http://localhost:3000
 ```
 
-If the backend isn't reachable or the env var isn't set, the UI silently falls back to local data + localStorage so demos always work.
-
-### Docker
-
-```bash
-docker build -t aceterview-api ./backend
-docker run -p 8000:8000 -e JWT_SECRET=mysecret aceterview-api
-```
+The frontend wires itself to the backend when `NEXT_PUBLIC_API_URL` is set in `.env.local`. If the var is missing or the API is unreachable, the UI silently falls back to local data + `localStorage` — no demo path is ever broken.
 
 ## Backend endpoints
 
@@ -82,32 +99,43 @@ Full Swagger UI at <http://localhost:8000/docs>.
 ## Project structure
 
 ```
-app/                       # Next.js App Router
-  layout.tsx, page.tsx     # Root + landing
-  dashboard/, interview/, mock/, resume/, reports/, companies/, pricing/
-  exams/, exams/[id]/      # Competitive exams hub + taker
-  leaderboard/, login/, signup/
-  api/                     # Local Next API fallback (questions, score, resume)
-
-components/                # AIAvatar, WebcamPanel, ProgressRing, SparkLine,
-                           # SkillRadar, StreakHeatmap, AnimatedCounter,
-                           # AuthShell, Navbar, Footer, BackgroundFX, Logo
-
-lib/
-  data.ts                  # Question bank, companies, sessions, testimonials
-  exams.ts                 # 10 competitive exams (mirror of backend seed)
-  leaderboard.ts           # Demo leaderboard rows for offline mode
-  api.ts                   # Backend client + JWT in localStorage + offline detect
-  scoring.ts, speech.ts, utils.ts
-
-backend/                   # FastAPI + SQLAlchemy + SQLite
-  Dockerfile, requirements.txt, README.md, .env.example
-  app/
-    main.py, config.py, database.py, models.py, schemas.py, auth.py, scoring.py
-    seed.py, seed_data.py
-    routers/
-      auth.py, questions.py, score.py, resume.py, sessions.py,
-      exams.py, leaderboard.py, dashboard.py
+.
+├─ start.sh                  # one-command bootstrapper (web + api)
+├─ docker-compose.yml        # production: docker compose up --build
+├─ Dockerfile                # frontend image (multi-stage Node 22 alpine)
+│
+├─ app/                      # Next.js App Router
+│  ├─ layout.tsx, page.tsx   # Root + landing
+│  ├─ dashboard/ interview/ mock/ resume/ reports/ companies/ pricing/
+│  ├─ exams/ exams/[id]/     # Competitive exams hub + taker
+│  ├─ leaderboard/ login/ signup/
+│  └─ api/                   # Local Next API fallback (questions, score, resume)
+│
+├─ components/
+│  ├─ auth/                  # Unified auth experience
+│  │  ├─ AuthLayout.tsx      # Split-screen + ParticleField backdrop
+│  │  ├─ AuthCard.tsx        # Tabs, floating-label fields, validation, submit
+│  │  ├─ ParticleField.tsx   # Canvas connection-graph background
+│  │  ├─ Showcase.tsx        # Right-side rotating testimonials + AI avatar
+│  │  └─ SocialButtons.tsx   # Google + GitHub buttons (visual)
+│  └─ AIAvatar, WebcamPanel, ProgressRing, SparkLine, SkillRadar,
+│     StreakHeatmap, AnimatedCounter, Navbar, Footer, BackgroundFX, Logo
+│
+├─ lib/
+│  ├─ data.ts                # Question bank, companies, sessions, testimonials
+│  ├─ exams.ts               # 10 competitive exams (mirror of backend seed)
+│  ├─ leaderboard.ts         # Demo leaderboard rows for offline mode
+│  ├─ api.ts                 # Backend client + JWT in localStorage + offline detect
+│  └─ scoring.ts, speech.ts, utils.ts
+│
+└─ backend/                  # FastAPI + SQLAlchemy + SQLite
+   ├─ Dockerfile, requirements.txt, README.md, .env.example
+   └─ app/
+      ├─ main.py, config.py, database.py, models.py, schemas.py
+      ├─ auth.py, scoring.py, seed.py, seed_data.py
+      └─ routers/
+         auth.py, questions.py, score.py, resume.py, sessions.py,
+         exams.py, leaderboard.py, dashboard.py
 ```
 
 ## Optional: enable LLM scoring
