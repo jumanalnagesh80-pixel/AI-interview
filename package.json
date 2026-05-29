@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backend:install": "cd backend && python3 -m pip install -r requirements.txt",
+    "backend:dev": "cd backend && python3 -m uvicorn app.main:app --reload --port 8000",
+    "backend:start": "cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
+    "dev:all": "concurrently -n web,api -c magenta,cyan \"npm:dev\" \"npm:backend:dev\"",
+    "start:all": "concurrently -n web,api -c magenta,cyan \"npm:start\" \"npm:backend:start\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -22,6 +27,7 @@
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.1",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.13",
     "postcss": "^8.4.45",

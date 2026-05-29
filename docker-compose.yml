@@ -1,0 +1,42 @@
+# One command brings up the whole AceTerview stack:
+#   docker compose up --build
+#
+# Frontend on http://localhost:3000, backend on http://localhost:8000.
+
+services:
+  api:
+    build: ./backend
+    container_name: aceterview-api
+    environment:
+      - DATABASE_URL=sqlite:////data/aceterview.db
+      - JWT_SECRET=${JWT_SECRET:-change-me-in-production-please}
+      - JWT_EXPIRE_MINUTES=10080
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    volumes:
+      - api-data:/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  web:
+    build: .
+    container_name: aceterview-web
+    environment:
+      # When running in the same compose network, this is what the browser uses.
+      # Build-time env: NEXT_PUBLIC_* must be baked into the build.
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+      - NODE_ENV=production
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+
+volumes:
+  api-data:
