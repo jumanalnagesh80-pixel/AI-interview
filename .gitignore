@@ -7,3 +7,15 @@ dist
 .DS_Store
 *.log
 .vscode
+
+
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+backend/.env
+backend/aceterview.db
+backend/aceterview.db-journal
