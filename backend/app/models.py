@@ -23,6 +23,7 @@ class User(Base):
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     plan: Mapped[str] = mapped_column(String(20), default="free")  # free / pro / campus
+    role: Mapped[str] = mapped_column(String(20), default="user", index=True)  # user / admin / owner
     xp: Mapped[int] = mapped_column(Integer, default=0)
     streak_days: Mapped[int] = mapped_column(Integer, default=0)
     avatar_url: Mapped[str | None] = mapped_column(String(500), nullable=True)

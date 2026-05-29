@@ -23,12 +23,14 @@ import {
   ClipboardList,
   Brain,
   Activity,
+  Crown,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import { cn } from "@/lib/utils";
 import {
   getStoredUser,
   logout as apiLogout,
+  isAdmin as isAdminUser,
   type AuthUser,
 } from "@/lib/api";
 
@@ -105,6 +107,21 @@ export function Navbar() {
               </Link>
             );
           })}
+
+          {isAdminUser(user) && (
+            <Link
+              href="/admin"
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm transition",
+                isActive("/admin")
+                  ? "bg-warn/20 text-warn shadow-[0_0_0_1px_rgba(245,158,11,0.4)]"
+                  : "text-warn/85 hover:bg-warn/10 hover:text-warn",
+              )}
+            >
+              <Crown className="h-3.5 w-3.5" />
+              <span>Admin</span>
+            </Link>
+          )}
 
           <div className="relative">
             <button
@@ -203,6 +220,19 @@ export function Navbar() {
                 {item.label}
               </Link>
             ))}
+            {isAdminUser(user) && (
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
+                  isActive("/admin") ? "bg-warn/20 text-warn" : "text-warn/85 hover:bg-warn/10",
+                )}
+              >
+                <Crown className="h-3.5 w-3.5" />
+                Admin
+              </Link>
+            )}
           </div>
           <div className="mt-3 grid gap-2 border-t border-white/5 pt-3">
             {user ? (

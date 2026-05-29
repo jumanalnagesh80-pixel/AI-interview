@@ -1,25 +1,25 @@
 # AceTerview AI
 
-The most advanced AI interview prep platform — face-to-face AI interviews, resume analysis, voice + body language scoring, real-time feedback, **competitive-exam mocks (TCS NQT, Infosys, Wipro, Capgemini, Cognizant, Accenture)**, leaderboard, and a full Python FastAPI backend with SQLite.
+The most advanced AI interview prep platform — face-to-face AI interviews, resume analysis, voice + body language scoring, real-time feedback, **adaptive practice**, **personal analytics**, **a complete catalog of Indian competitive exams (UPSC, SSC, IBPS, SBI, RBI, NABARD, RRB, NDA, CDS, CAT, GATE)**, leaderboard, and a full Python FastAPI backend with SQLite.
+
+> Built and owned by **NAGESH JUMANAL**.
 
 ## Surfaces
 
 | Route | What's there |
 |---|---|
 | `/` | Landing — animated AI hero, animated counters, infinite companies marquee, exam banner, **practice + analytics promo**, comparison vs other AI sites |
-| `/interview` | Flagship: face-to-face AI interview (real webcam + Web Speech API STT/TTS, live signals) |
-| `/practice` | **NEW** — adaptive practice with topic picker (Mixed/Aptitude/Reasoning/Verbal/Coding/Pseudocode), one-question-at-a-time stream, instant feedback + explanations, streak counter with confetti burst on correct answers, +25 XP at every 5-streak milestone, bookmark for later |
-| `/analytics` | **NEW** — personal performance with **HoloRing overall accuracy**, 4 stat cards, strongest/focus/recommended Tilt3D cards, topic accuracy bars, weekly accuracy trend, 12-week activity heatmap, 24-hour time-of-day chart, calibrated next-step tips |
-| `/exams` | Competitive-exam hub — category filters, search, **3D-tilt gradient cards** with rotating glare |
-| `/exams/[id]` | Timed mock exam with question palette, mark-for-review, **HoloRing result with confetti burst**, sectional breakdown, per-question review with explanations |
-| `/leaderboard` | Top-3 podium + full ranking table with XP, sessions, avg/best score, trend |
+| `/interview` | Flagship: face-to-face AI interview with **AceFace** humanoid avatar (eyes that follow your cursor, blinking, lip-syncing mouth, eyebrows, breathing). **Always-on listening** auto-submits when you stop speaking for ~2.5s |
+| `/practice` | Adaptive practice with topic picker, instant feedback + explanations, streak counter with confetti burst, +25 XP at every 5-streak milestone, bookmark for later |
+| `/analytics` | HoloRing overall accuracy, 4 stat cards, strongest/focus/recommended Tilt3D cards, topic accuracy bars, weekly trend, 12-week heatmap, 24-hour time-of-day chart |
+| `/exams` | Competitive-exam hub with 11 categories. **Indian exams included:** UPSC CSE Prelims, SSC CGL/CHSL/GD, IBPS PO/Clerk, SBI PO, RBI Grade B, NABARD, RRB NTPC/Group D, NDA, CDS, CAT, GATE CSE + standalone GK/Science/Banking/Computer Awareness mocks. **Plus** TCS NQT, Infosys, Wipro, Capgemini, Cognizant, Accenture |
+| `/exams/[id]` | Timed mock exam with palette, mark-for-review, **HoloRing result with confetti burst**, sectional breakdown, per-question review with explanations |
+| `/leaderboard` | Top-3 podium + full ranking table |
 | `/dashboard` | Readiness ring, score trend, skill radar, streak heatmap, recent sessions |
-| `/resume` | ATS-aware resume analyzer with prioritised action plan |
-| `/mock` | HR / Behavioral / Technical / System Design rounds with STAR coaching |
-| `/reports` | Per-session detailed reports with downloadable export |
-| `/companies` | Per-company simulators (Google, Amazon, Microsoft, Meta, TCS, Infosys, Wipro, Accenture) |
-| `/pricing` | Free / $9 Pro / Campus tiers + FAQ |
-| `/login`, `/signup` | Unified auth experience: animated tab pill, canvas particle background, glassmorphic card with rotating conic border, floating-label inputs, password strength meter, social buttons, success burst animation, rotating testimonial showcase |
+| `/admin` | **Owner-only**. Admin channel with engagement HoloRing, 6 totals/weekly stat cards, recent attempts table, quick links |
+| `/admin/users` | **Owner-only**. Promote / demote / remove users, role badges, search |
+| `/resume`, `/mock`, `/reports`, `/companies`, `/pricing` | Resume analyzer, text-mock rounds, reports with export, per-company simulators, pricing |
+| `/login`, `/signup` | Unified auth with animated tab pill, particle background, glassmorphic card, floating-label inputs, password strength meter |
 
 ## Tech stack
 
@@ -79,6 +79,27 @@ npm run dev          # http://localhost:3000
 
 The frontend wires itself to the backend when `NEXT_PUBLIC_API_URL` is set in `.env.local`. If the var is missing or the API is unreachable, the UI silently falls back to local data + `localStorage` — no demo path is ever broken.
 
+## Owner / Admin
+
+The platform recognises a single **owner** account with full admin powers. By default, that's:
+
+- **Name:** `NAGESH JUMANAL`
+- **Email:** `nagesh.jumanal@aceterview.app`
+- **Password:** `ChangeMeOwner!2026` (override via `OWNER_PASSWORD` in `backend/.env`)
+
+The owner is **bootstrapped automatically** the first time the backend starts (idempotent — won't duplicate). Sign in with that email + password to see the **Admin** link appear in the navbar (with a crown icon).
+
+The owner can:
+- View `/admin` — engagement HoloRing, totals + this-week deltas, recent attempts feed
+- Visit `/admin/users` — search, promote a user to admin, demote back, or delete an account
+- Promote other accounts to admin (admins get read-only `/admin` access)
+
+Edit `backend/.env` to change the bootstrapped owner's name / email / password before first launch.
+
+## Database file
+
+SQLite database file is **`backend/nagesh_aceterview.db`** by default (configurable via `DATABASE_URL`). The database is rebuilt and seeded on every fresh start.
+
 ## Backend endpoints
 
 - `POST /api/auth/register` · `POST /api/auth/login` · `GET /api/auth/me`
@@ -94,6 +115,13 @@ The frontend wires itself to the backend when `NEXT_PUBLIC_API_URL` is set in `.
 - **`GET /api/practice/daily`** — 5-question deterministic daily challenge
 - **`GET /api/practice/bookmarks` · `POST /api/practice/bookmarks` · `DELETE /api/practice/bookmarks/{id}`**
 - **`GET /api/analytics/me`** — personal accuracy by section, 84-day heatmap, time-of-day, strongest/weakest, recommended exam
+
+- **`GET /api/admin/overview`** — owner block, totals, weekly deltas
+- **`GET /api/admin/users`** — list all users
+- **`POST /api/admin/users/{id}/promote`** — make admin (owner only)
+- **`POST /api/admin/users/{id}/demote`** — revoke admin (owner only)
+- **`DELETE /api/admin/users/{id}`** — remove user (owner only)
+- **`GET /api/admin/recent-attempts`** — latest 40 exam attempts platform-wide
 
 Full Swagger UI at <http://localhost:8000/docs>.
 

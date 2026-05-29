@@ -15,6 +15,7 @@ export interface AuthUser {
   email: string;
   name: string;
   plan: string;
+  role?: string;
   xp: number;
   streak_days: number;
   avatar_url: string | null;
@@ -132,4 +133,49 @@ export const api = {
 
 export function isOnline() {
   return Boolean(API_URL);
+}
+
+
+
+// --- admin ---
+export const adminApi = {
+  overview: () => fetch(`${API_URL}/api/admin/overview`, authHeaders()).then(asJson),
+  users: () => fetch(`${API_URL}/api/admin/users`, authHeaders()).then(asJson),
+  promote: (id: number) =>
+    fetch(`${API_URL}/api/admin/users/${id}/promote`, { method: "POST", ...authHeaders() }).then(asJson),
+  demote: (id: number) =>
+    fetch(`${API_URL}/api/admin/users/${id}/demote`, { method: "POST", ...authHeaders() }).then(asJson),
+  remove: (id: number) =>
+    fetch(`${API_URL}/api/admin/users/${id}`, { method: "DELETE", ...authHeaders() }).then((r) => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    }),
+  recentAttempts: () => fetch(`${API_URL}/api/admin/recent-attempts`, authHeaders()).then(asJson),
+};
+
+function authHeaders(): RequestInit {
+  const t = getToken();
+  return {
+    headers: {
+      "content-type": "application/json",
+      ...(t ? { authorization: `Bearer ${t}` } : {}),
+    },
+  };
+}
+
+async function asJson(r: Response) {
+  const text = await r.text();
+  const json = text ? JSON.parse(text) : null;
+  if (!r.ok) {
+    const detail = json?.detail || json?.error || `HTTP ${r.status}`;
+    throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail));
+  }
+  return json;
+}
+
+export function isAdmin(user: AuthUser | null): boolean {
+  return Boolean(user && (user.role === "admin" || user.role === "owner"));
+}
+
+export function isOwner(user: AuthUser | null): boolean {
+  return user?.role === "owner";
 }

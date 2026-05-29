@@ -8,9 +8,11 @@ class Settings(BaseSettings):
 
     app_name: str = "AceTerview API"
     environment: str = "dev"
+    owner_name: str = "NAGESH JUMANAL"
+    owner_email: str = "nagesh.jumanal@aceterview.app"
 
     # SQLite by default. Override with e.g. postgresql+psycopg://user:pw@host/db
-    database_url: str = "sqlite:///./aceterview.db"
+    database_url: str = "sqlite:///./nagesh_aceterview.db"
 
     # JWT
     jwt_secret: str = "change-me-in-production-please"
@@ -19,6 +21,9 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+
+    # Owner bootstrap (created if missing on startup)
+    owner_password: str = "ChangeMeOwner!2026"
 
     # Optional LLM
     openai_api_key: str | None = None

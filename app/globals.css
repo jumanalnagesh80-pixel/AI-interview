@@ -523,3 +523,28 @@ body {
     transform: translate(var(--dx), calc(var(--dy) + 220px)) rotate(var(--rot, 360deg));
   }
 }
+
+
+
+/* --------- AceFace avatar --------- */
+.ace-breathing {
+  animation: aceBreath 4.5s ease-in-out infinite;
+}
+@keyframes aceBreath {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.012); }
+}
+
+/* Eyelids: scaleY animates from 0 (open) to 1 (closed). */
+.ace-eyelid {
+  animation: aceBlink 5.5s infinite;
+  transform: scaleY(0);
+}
+.ace-eyelid-listening {
+  animation: aceBlink 3.2s infinite;
+  transform: scaleY(0);
+}
+@keyframes aceBlink {
+  0%, 92%, 100% { transform: scaleY(0); }
+  94%, 98%      { transform: scaleY(1); }
+}

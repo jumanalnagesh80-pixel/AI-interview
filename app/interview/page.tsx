@@ -62,9 +62,15 @@ export default function FaceToFaceInterviewPage() {
   const [partial, setPartial] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const [turns, setTurns] = useState<Turn[]>([]);
+  /** Continuous-listen mode: auto-submits after user stops speaking for ~2.5s. */
+  const [autoListen, setAutoListen] = useState(true);
   const recRef = useRef<ReturnType<typeof createRecognition> | null>(null);
   const turnStartRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSpeechAtRef = useRef<number>(0);
+  const transcriptRef = useRef<string>("");
+  const partialRef = useRef<string>("");
 
   // Live mock metrics — would be fed by real CV/audio analyzers in production.
   const [liveMetrics, setLiveMetrics] = useState({ pace: 70, clarity: 78, eyeContact: 82, posture: 80 });
@@ -93,6 +99,8 @@ export default function FaceToFaceInterviewPage() {
   const askCurrent = async (idx: number) => {
     const q = pool[idx];
     if (!q) return;
+    transcriptRef.current = "";
+    partialRef.current = "";
     setTranscript("");
     setPartial("");
     setElapsed(0);
@@ -116,17 +124,47 @@ export default function FaceToFaceInterviewPage() {
   const startListening = () => {
     setListening(true);
     if (recRef.current) recRef.current.stop();
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    lastSpeechAtRef.current = Date.now();
+
+    const armSilenceTimer = () => {
+      if (!autoListen) return;
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = setTimeout(() => {
+        // Only auto-submit if we have something AND nothing new came in for ~2.5s.
+        const sinceSpeech = Date.now() - lastSpeechAtRef.current;
+        const text = (transcriptRef.current + " " + partialRef.current).trim();
+        if (sinceSpeech >= 2400 && text.length > 12) {
+          void submitAnswer();
+        }
+      }, 2500);
+    };
+
     const rec = createRecognition({
-      onPartial: (t) => setPartial(t),
-      onFinal: (t) => setTranscript((prev) => (prev ? prev + " " : "") + t),
+      onPartial: (t) => {
+        partialRef.current = t;
+        setPartial(t);
+        lastSpeechAtRef.current = Date.now();
+        armSilenceTimer();
+      },
+      onFinal: (t) => {
+        transcriptRef.current = (transcriptRef.current ? transcriptRef.current + " " : "") + t;
+        partialRef.current = "";
+        setTranscript(transcriptRef.current);
+        setPartial("");
+        lastSpeechAtRef.current = Date.now();
+        armSilenceTimer();
+      },
       onEnd: () => setListening(false),
       onError: () => setListening(false),
     });
     recRef.current = rec;
     if (rec.supported) rec.start();
+    armSilenceTimer();
   };
 
   const stopListening = () => {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     recRef.current?.stop();
     setListening(false);
   };
@@ -218,6 +256,14 @@ export default function FaceToFaceInterviewPage() {
           {company !== "any" && <span className="chip"><Building2 className="h-3 w-3" /> {company}</span>}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setAutoListen((v) => !v)}
+            className={cn("btn-soft", autoListen && "border-success/40 bg-success/15 text-success")}
+            title="Auto-submit after you stop speaking for ~2.5s"
+          >
+            <span className={cn("h-1.5 w-1.5 rounded-full", autoListen ? "bg-success animate-pulse" : "bg-white/40")} />
+            Always-on
+          </button>
           <button onClick={() => setVoiceOn((v) => !v)} className="btn-soft">
             {voiceOn ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
             {voiceOn ? "Voice on" : "Voice off"}
