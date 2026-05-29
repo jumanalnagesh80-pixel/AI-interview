@@ -146,3 +146,35 @@ class ResumeAnalysis(Base):
 
 Index("ix_sessions_user_created", Session.user_id, Session.created_at.desc())
 Index("ix_attempts_user_score", ExamAttempt.user_id, ExamAttempt.score.desc())
+
+
+
+class Bookmark(Base):
+    __tablename__ = "bookmarks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    exam_id: Mapped[str] = mapped_column(ForeignKey("exams.id"), index=True)
+    question_id: Mapped[str] = mapped_column(ForeignKey("exam_questions.id"), index=True)
+    note: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+class PracticeAnswer(Base):
+    """Individual answers in adaptive practice mode (untimed, instant-feedback)."""
+
+    __tablename__ = "practice_answers"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    question_id: Mapped[str] = mapped_column(ForeignKey("exam_questions.id"), index=True)
+    section: Mapped[str] = mapped_column(String(60), index=True)
+    picked: Mapped[int] = mapped_column(Integer, default=-1)
+    is_correct: Mapped[bool] = mapped_column(Boolean, default=False)
+    time_taken_ms: Mapped[int] = mapped_column(Integer, default=0)
+    streak_at_answer: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+
+Index("ix_bookmarks_user_question", Bookmark.user_id, Bookmark.question_id, unique=True)
+Index("ix_practice_user_section_time", PracticeAnswer.user_id, PracticeAnswer.section, PracticeAnswer.created_at.desc())

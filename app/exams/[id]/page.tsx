@@ -21,6 +21,9 @@ import {
   Lightbulb,
 } from "lucide-react";
 import { ProgressRing } from "@/components/ProgressRing";
+import { HoloRing } from "@/components/HoloRing";
+import { ConfettiBurst, type ConfettiHandle } from "@/components/ConfettiBurst";
+import { LiquidBlob } from "@/components/LiquidBlob";
 import { getExam, type Exam, type ExamQuestion } from "@/lib/exams";
 import { cn } from "@/lib/utils";
 
@@ -389,8 +392,23 @@ function ResultScreen({
 
   const fmt = (s: number) => `${Math.floor(s / 60)}m ${s % 60}s`;
 
+  const confetti = useRef<ConfettiHandle>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (score >= 60) {
+      const t = setTimeout(() => {
+        const rect = containerRef.current?.getBoundingClientRect();
+        const x = rect ? rect.width / 2 : undefined;
+        const y = rect ? 320 : undefined;
+        confetti.current?.fire(x, y);
+      }, 700);
+      return () => clearTimeout(t);
+    }
+  }, [score]);
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+    <div ref={containerRef} className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <ConfettiBurst ref={confetti} />
       {/* Header */}
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -406,8 +424,15 @@ function ResultScreen({
 
       {/* Top stats */}
       <div className="mt-6 grid gap-4 lg:grid-cols-4">
-        <div className="card flex items-center justify-center lg:col-span-1">
-          <ProgressRing value={score} size={170} stroke={12} sublabel="overall" />
+        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 lg:col-span-1">
+          <LiquidBlob
+            className="-right-16 -top-16 h-56 w-56 opacity-50"
+            colorFrom="#6b7eff"
+            colorTo="#d946ef"
+          />
+          <div className="relative grid place-items-center">
+            <HoloRing value={score} size={210} stroke={12} label="overall" />
+          </div>
         </div>
         <div className="card grid grid-cols-2 gap-3 lg:col-span-3">
           <Stat label="Correct" value={`${correct}/${totalQ}`} tone="success" />

@@ -35,6 +35,7 @@ export default function HomePage() {
       <FeatureGrid />
       <FaceToFaceShowcase />
       <ExamsBanner />
+      <PracticeAnalyticsBlock />
       <ComparisonSection />
       <CompaniesStrip />
       <HowItWorks />
@@ -427,6 +428,82 @@ function ExamMini({ value, label, suffix = "" }: { value: number; label: string;
       </div>
       <div className="text-[10px] uppercase tracking-widest text-white/45">{label}</div>
     </div>
+  );
+}
+
+/* -------------------- Practice + Analytics promo -------------------- */
+
+function PracticeAnalyticsBlock() {
+  return (
+    <section className="mx-auto mt-20 max-w-7xl px-4 sm:px-6">
+      <SectionHeader
+        eyebrow="Adaptive practice + personal analytics"
+        title="The engine learns where you struggle, then drills you there"
+        subtitle="One-tap practice with instant feedback. A personal analytics page with topic accuracy heatmap, time-of-day, and a recommended next exam."
+      />
+
+      <div className="mt-10 grid gap-5 lg:grid-cols-2">
+        <Link
+          href="/practice"
+          className="neon-ring relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-brand-700/25 via-ink-900/60 to-accent-500/15 p-7 transition hover:-translate-y-0.5"
+        >
+          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-brand-500/35 blur-3xl" />
+          <div className="relative">
+            <span className="chip">
+              <Brain className="h-3 w-3 text-brand-400" /> Adaptive practice
+            </span>
+            <h3 className="mt-4 text-2xl font-semibold tracking-tight text-gradient sm:text-3xl">
+              One question. Instant feedback. Repeat.
+            </h3>
+            <ul className="mt-4 space-y-2 text-sm text-white/75">
+              {[
+                "Topics auto-bias toward your weakest section",
+                "Confetti + +25 XP at every 5-correct streak",
+                "Bookmark anything to revisit later",
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 inline-flex items-center gap-1 text-sm text-brand-300">
+              Start practicing <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+
+        <Link
+          href="/analytics"
+          className="neon-ring relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-fuchsia-500/15 via-ink-900/60 to-accent-500/15 p-7 transition hover:-translate-y-0.5"
+        >
+          <div className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-fuchsia-500/30 blur-3xl" />
+          <div className="relative">
+            <span className="chip">
+              <Activity className="h-3 w-3 text-accent-400" /> Personal analytics
+            </span>
+            <h3 className="mt-4 text-2xl font-semibold tracking-tight text-gradient sm:text-3xl">
+              See where to spend the next 20 minutes
+            </h3>
+            <ul className="mt-4 space-y-2 text-sm text-white/75">
+              {[
+                "Topic accuracy heatmap + time-of-day chart",
+                "Strongest / focus area cards calibrated daily",
+                "Auto-recommends your next exam to take",
+              ].map((line) => (
+                <li key={line} className="flex items-start gap-2">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                  <span>{line}</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-6 inline-flex items-center gap-1 text-sm text-accent-400">
+              Open analytics <ArrowRight className="h-4 w-4" />
+            </div>
+          </div>
+        </Link>
+      </div>
+    </section>
   );
 }
 

@@ -20,6 +20,7 @@ import {
   Zap,
 } from "lucide-react";
 import { EXAMS, CATEGORY_LABEL, type Exam, type ExamCategory } from "@/lib/exams";
+import { Tilt3D } from "@/components/Tilt3D";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES: { id: "all" | ExamCategory; label: string; icon: React.ReactNode }[] = [
@@ -135,7 +136,9 @@ export default function ExamsPage() {
               </div>
               <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {list.map((e) => (
-                  <ExamCard key={e.id} exam={e} />
+                  <Tilt3D key={e.id} maxDeg={6} className="h-full">
+                    <ExamCard exam={e} />
+                  </Tilt3D>
                 ))}
               </div>
             </section>

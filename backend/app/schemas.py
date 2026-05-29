@@ -205,3 +205,94 @@ class DashboardStats(BaseModel):
     score_trend: list[int]
     skill_radar: list[dict]
     recent: list[SessionOut]
+
+
+
+# ---- practice / bookmarks ----
+class PracticeQuestion(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: str
+    exam_id: str
+    section: str
+    text: str
+    options: list[str]
+    difficulty: str
+
+
+class PracticeBatch(BaseModel):
+    questions: list[PracticeQuestion]
+    weakest_section: str | None = None
+    target_count: int
+
+
+class PracticeAnswerSubmit(BaseModel):
+    question_id: str
+    picked: int
+    time_taken_ms: int = 0
+
+
+class PracticeAnswerResult(BaseModel):
+    question_id: str
+    is_correct: bool
+    correct_index: int
+    explanation: str = ""
+    streak: int
+    xp_awarded: int
+
+
+class BookmarkCreate(BaseModel):
+    question_id: str
+    note: str = ""
+
+
+class BookmarkOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    exam_id: str
+    question_id: str
+    note: str
+    created_at: datetime
+
+
+class BookmarkWithQuestion(BookmarkOut):
+    text: str = ""
+    section: str = ""
+    options: list[str] = []
+    correct_index: int = 0
+    explanation: str = ""
+
+
+# ---- analytics ----
+class TopicAccuracy(BaseModel):
+    section: str
+    answered: int
+    correct: int
+    accuracy: float
+    avg_time_ms: int
+
+
+class HeatCell(BaseModel):
+    date: str  # YYYY-MM-DD
+    answered: int
+    correct: int
+
+
+class TimeOfDay(BaseModel):
+    hour: int  # 0-23
+    answered: int
+    correct: int
+
+
+class AnalyticsOut(BaseModel):
+    total_practice_answers: int
+    total_exam_attempts: int
+    overall_accuracy: float
+    avg_time_ms: int
+    streak_days: int
+    by_section: list[TopicAccuracy]
+    strongest_section: str | None
+    weakest_section: str | None
+    heatmap: list[HeatCell]  # last 84 days
+    time_of_day: list[TimeOfDay]
+    recommended_exam_id: str | None
+    recommended_reason: str
