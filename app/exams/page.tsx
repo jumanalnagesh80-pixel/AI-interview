@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   GraduationCap,
   Search,
@@ -18,9 +19,13 @@ import {
   Filter,
   Layers,
   Zap,
+  Loader2,
+  Play,
 } from "lucide-react";
 import { EXAMS, CATEGORY_LABEL, type Exam, type ExamCategory } from "@/lib/exams";
 import { Tilt3D } from "@/components/Tilt3D";
+import { ExamCardSkeleton } from "@/components/Skeleton";
+import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
 
 const CATEGORIES: { id: "all" | ExamCategory; label: string; icon: React.ReactNode }[] = [
@@ -49,6 +54,19 @@ const ICONS: Record<string, React.ReactNode> = {
 export default function ExamsPage() {
   const [active, setActive] = useState<"all" | ExamCategory>("all");
   const [query, setQuery] = useState("");
+  const [loading, setLoading] = useState(true);
+  // examId currently navigating, so we can show a spinner + block double-clicks.
+  const [navigatingId, setNavigatingId] = useState<string | null>(null);
+  const router = useRouter();
+  const toast = useToast();
+
+  // Brief initial load so skeletons render (and data/route prefetch can warm up).
+  useEffect(() => {
+    const t = setTimeout(() => setLoading(false), 350);
+    // Prefetch the exam route bundle so navigation is instant.
+    router.prefetch?.("/exams/tcs-nqt");
+    return () => clearTimeout(t);
+  }, [router]);
 
   const filtered = useMemo(() => {
     let list: Exam[] = EXAMS;
@@ -64,6 +82,14 @@ export default function ExamsPage() {
     }
     return list;
   }, [active, query]);
+
+  const startExam = (exam: Exam) => {
+    if (navigatingId) return; // guard against double-click / rapid taps
+    setNavigatingId(exam.id);
+    toast.info(`Loading ${exam.name}…`, 2000);
+    // router.push navigates to the exam detail page with the dynamic id.
+    router.push(`/exams/${exam.id}`);
+  };
 
   const totalQs = EXAMS.reduce((s, e) => s + e.total_questions, 0);
 
@@ -104,6 +130,7 @@ export default function ExamsPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search company or topic..."
+            aria-label="Search exams"
             className="w-72 rounded-lg border border-white/10 bg-ink-950/60 py-2 pl-9 pr-3 text-sm outline-none focus:border-brand-400/50"
           />
         </div>
@@ -112,6 +139,7 @@ export default function ExamsPage() {
             <button
               key={c.id}
               onClick={() => setActive(c.id)}
+              aria-pressed={active === c.id}
               className={cn(
                 "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs transition",
                 active === c.id
@@ -128,35 +156,58 @@ export default function ExamsPage() {
         </span>
       </div>
 
-      {/* Grouped grid */}
-      <div className="mt-8 space-y-10">
-        {(active === "all" ? Object.keys(CATEGORY_LABEL) : [active]).map((catKey) => {
-          const cat = catKey as ExamCategory;
-          const list = filtered.filter((e) => e.category === cat);
-          if (list.length === 0) return null;
-          return (
-            <section key={cat}>
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-medium text-white/85">{CATEGORY_LABEL[cat]}</h2>
-                <span className="text-xs text-white/45">{list.length} exam{list.length !== 1 ? "s" : ""}</span>
-              </div>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {list.map((e) => (
-                  <Tilt3D key={e.id} maxDeg={6} className="h-full">
-                    <ExamCard exam={e} />
-                  </Tilt3D>
-                ))}
-              </div>
-            </section>
-          );
-        })}
+      {/* Loading skeletons */}
+      {loading ? (
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <ExamCardSkeleton key={i} />
+          ))}
+        </div>
+      ) : (
+        <div className="mt-8 space-y-10">
+          {(active === "all" ? Object.keys(CATEGORY_LABEL) : [active]).map((catKey) => {
+            const cat = catKey as ExamCategory;
+            const list = filtered.filter((e) => e.category === cat);
+            if (list.length === 0) return null;
+            return (
+              <section key={cat}>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-medium text-white/85">{CATEGORY_LABEL[cat]}</h2>
+                  <span className="text-xs text-white/45">{list.length} exam{list.length !== 1 ? "s" : ""}</span>
+                </div>
+                <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {list.map((e) => (
+                    <Tilt3D key={e.id} maxDeg={6} className="h-full">
+                      <ExamCard
+                        exam={e}
+                        onStart={() => startExam(e)}
+                        navigating={navigatingId === e.id}
+                        disabled={navigatingId !== null && navigatingId !== e.id}
+                      />
+                    </Tilt3D>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
 
-        {filtered.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center text-sm text-white/45">
-            No exams match your filters.
-          </div>
-        )}
-      </div>
+          {filtered.length === 0 && (
+            <div className="rounded-2xl border border-dashed border-white/10 p-10 text-center">
+              <Search className="mx-auto h-6 w-6 text-white/30" />
+              <p className="mt-3 text-sm text-white/55">No exams match "{query || active}".</p>
+              <button
+                onClick={() => {
+                  setQuery("");
+                  setActive("all");
+                }}
+                className="btn-soft mt-4"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* CTA strip */}
       <section className="mt-16">
@@ -184,12 +235,19 @@ export default function ExamsPage() {
   );
 }
 
-function ExamCard({ exam }: { exam: Exam }) {
+function ExamCard({
+  exam,
+  onStart,
+  navigating,
+  disabled,
+}: {
+  exam: Exam;
+  onStart: () => void;
+  navigating: boolean;
+  disabled: boolean;
+}) {
   return (
-    <Link
-      href={`/exams/${exam.id}`}
-      className="group relative block overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-white/20"
-    >
+    <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-white/20">
       {/* gradient halo */}
       <div className={`absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gradient-to-br ${exam.color} opacity-25 blur-2xl transition group-hover:opacity-60`} />
       {/* shimmer ring on hover */}
@@ -203,9 +261,15 @@ function ExamCard({ exam }: { exam: Exam }) {
           <DifficultyChip difficulty={exam.difficulty} />
         </div>
 
+        {/* The title links to the detail page (keyboard accessible). */}
         <div className="mt-4 flex items-baseline justify-between gap-2">
-          <h3 className="text-lg font-medium">{exam.name}</h3>
-          {exam.company && <span className="chip">{exam.company}</span>}
+          <Link
+            href={`/exams/${exam.id}`}
+            className="text-lg font-medium outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
+          >
+            {exam.name}
+          </Link>
+          {exam.company && <span className="chip relative z-10">{exam.company}</span>}
         </div>
         <p className="mt-1 line-clamp-2 text-sm text-white/55">{exam.description}</p>
 
@@ -215,15 +279,31 @@ function ExamCard({ exam }: { exam: Exam }) {
           ))}
         </div>
 
-        <div className="mt-5 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-white/55">
+        <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/5 pt-4 text-xs text-white/55">
           <span className="inline-flex items-center gap-1.5"><ListChecks className="h-3.5 w-3.5" /> {exam.total_questions} Q</span>
           <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {exam.duration_min} min</span>
-          <span className="inline-flex items-center gap-1.5 text-brand-300 transition group-hover:text-brand-200">
-            Start <ArrowRight className="h-3.5 w-3.5 transition group-hover:translate-x-0.5" />
-          </span>
+          {/* Explicit, accessible Start button — sits above the title overlay link (z-10). */}
+          <button
+            type="button"
+            onClick={onStart}
+            disabled={navigating || disabled}
+            aria-label={`Start ${exam.name}`}
+            aria-busy={navigating}
+            className="btn-primary relative z-10 px-3 py-1.5 text-xs disabled:opacity-60"
+          >
+            {navigating ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5" /> Start
+              </>
+            )}
+          </button>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }
 
@@ -234,7 +314,7 @@ function DifficultyChip({ difficulty }: { difficulty: "Easy" | "Medium" | "Hard"
       : difficulty === "Medium"
       ? "bg-brand-500/15 text-brand-200 border-brand-400/20"
       : "bg-danger/15 text-danger border-danger/20";
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${tone}`}>{difficulty}</span>;
+  return <span className={`relative z-10 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${tone}`}>{difficulty}</span>;
 }
 
 function Stat({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint: string }) {

@@ -73,21 +73,56 @@ def submit_exam(
     score = round(correct * 100 / total) if total else 0
     accuracy = round(correct / total * 100, 1) if total else 0.0
 
+    attempt_id: int | None = None
+    created_at: str | None = None
     if user:
-        db.add(ExamAttempt(
+        attempt = ExamAttempt(
             user_id=user.id, exam_id=exam_id,
             score=score, correct=correct, total=total,
             section_scores=section_scores,
             duration_sec=payload.duration_sec,
             answers=[g.model_dump() for g in graded],
-        ))
+        )
+        db.add(attempt)
         user.xp += max(20, score // 4)
         db.commit()
+        db.refresh(attempt)
+        attempt_id = attempt.id
+        created_at = attempt.created_at.isoformat()
 
     return ExamResult(
+        attempt_id=attempt_id, exam_id=exam_id, created_at=created_at,
         score=score, correct=correct, total=total,
         accuracy=accuracy, duration_sec=payload.duration_sec,
         section_scores=section_scores, graded=graded,
+    )
+
+
+@router.get("/attempts/{attempt_id}", response_model=ExamResult)
+def get_attempt(
+    attempt_id: int,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Fetch a single graded attempt. Only the owner of the attempt (or an admin) may read it."""
+    attempt = db.get(ExamAttempt, attempt_id)
+    if attempt is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Attempt not found")
+    if attempt.user_id != user.id and user.role not in ("admin", "owner"):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Not your attempt")
+
+    graded = [ExamGradedAnswer(**g) for g in (attempt.answers or [])]
+    return ExamResult(
+        attempt_id=attempt.id,
+        exam_id=attempt.exam_id,
+        score=attempt.score,
+        correct=attempt.correct,
+        total=attempt.total,
+        accuracy=round(attempt.correct / attempt.total * 100, 1) if attempt.total else 0.0,
+        duration_sec=attempt.duration_sec,
+        section_scores=attempt.section_scores or {},
+        graded=graded,
+        created_at=attempt.created_at.isoformat(),
     )
 
 
