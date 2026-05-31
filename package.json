@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "backend:install": "cd backend && python3 -m pip install -r requirements.txt",
     "backend:dev": "cd backend && python3 -m uvicorn app.main:app --reload --port 8000",
     "backend:start": "cd backend && python3 -m uvicorn app.main:app --host 0.0.0.0 --port 8000",
@@ -32,6 +34,7 @@
     "eslint-config-next": "14.2.13",
     "postcss": "^8.4.45",
     "tailwindcss": "^3.4.10",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.1"
   }
 }

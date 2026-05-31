@@ -94,6 +94,7 @@ export const api = {
     id: string,
     payload: { answers: { question_id: string; picked: number; time_taken?: number }[]; duration_sec: number },
   ) => request<any>(`/api/exams/${id}/submit`, { method: "POST", body: JSON.stringify(payload) }),
+  getAttempt: (attemptId: number) => request<any>(`/api/exams/attempts/${attemptId}`),
 
   // leaderboard
   leaderboard: (period: "all" | "week" | "month" = "all", limit = 20) =>

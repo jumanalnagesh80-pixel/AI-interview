@@ -174,6 +174,8 @@ class ExamGradedAnswer(BaseModel):
 
 
 class ExamResult(BaseModel):
+    attempt_id: int | None = None  # DB id when persisted (signed-in users); null for guests
+    exam_id: str | None = None
     score: int
     correct: int
     total: int
@@ -181,6 +183,7 @@ class ExamResult(BaseModel):
     duration_sec: int
     section_scores: dict[str, dict[str, int]]
     graded: list[ExamGradedAnswer]
+    created_at: str | None = None
 
 
 # ---- leaderboard ----

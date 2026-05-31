@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import {
@@ -10,162 +10,146 @@ import {
   Flag,
   Send,
   CheckCircle2,
-  XCircle,
   Sparkles,
   Trophy,
-  RefreshCcw,
-  ListChecks,
   AlertTriangle,
   ArrowRight,
   PauseCircle,
   Lightbulb,
+  Loader2,
+  RotateCcw,
+  X,
+  Eraser,
 } from "lucide-react";
-import { ProgressRing } from "@/components/ProgressRing";
-import { HoloRing } from "@/components/HoloRing";
-import { ConfettiBurst, type ConfettiHandle } from "@/components/ConfettiBurst";
-import { LiquidBlob } from "@/components/LiquidBlob";
-import { getExam, type Exam, type ExamQuestion } from "@/lib/exams";
+import { getExam, type Exam } from "@/lib/exams";
 import { api, getStoredUser, isOnline } from "@/lib/api";
+import { useExamSession } from "@/hooks/useExamSession";
+import { gradeExam, formatClock } from "@/lib/examScoring";
+import { loadSession, saveAttempt, type StoredAttempt } from "@/lib/examSession";
+import { useToast } from "@/components/Toast";
 import { GuestBanner } from "@/components/GuestBanner";
 import { cn } from "@/lib/utils";
-
-type Phase = "intro" | "running" | "result";
-
-interface Picked {
-  picked: number; // -1 unanswered
-  marked: boolean;
-}
 
 export default function TakeExamPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
+  const toast = useToast();
   const exam = getExam(params.id);
+  const user = getStoredUser();
 
-  const [phase, setPhase] = useState<Phase>("intro");
-  const [current, setCurrent] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, Picked>>({});
-  const [secondsLeft, setSecondsLeft] = useState(0);
-  const startedAtRef = useRef<number>(0);
-  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const submittedRef = useRef(false);
-  const [timedOut, setTimedOut] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  // start the timer when exam begins
-  useEffect(() => {
-    if (phase !== "running" || !exam) return;
-    submittedRef.current = false;
-    setSecondsLeft(exam.duration_min * 60);
-    startedAtRef.current = Date.now();
-    tickRef.current && clearInterval(tickRef.current);
-    tickRef.current = setInterval(() => {
-      // Pure countdown only — no side effects inside the state updater.
-      setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
-    }, 1000);
-    return () => {
-      tickRef.current && clearInterval(tickRef.current);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, exam?.id]);
+  const onTimeout = () => {
+    toast.warning("Time's up — submitting your exam.", 3000);
+    void doSubmit(true);
+  };
 
-  // Auto-submit exactly once when the clock hits zero (side effect lives here,
-  // not inside the setState updater, to avoid cross-render update warnings).
-  useEffect(() => {
-    if (phase === "running" && secondsLeft === 0 && !submittedRef.current) {
-      submittedRef.current = true;
-      setTimedOut(true);
-      tickRef.current && clearInterval(tickRef.current);
-      setPhase("result");
-    }
-  }, [phase, secondsLeft]);
+  const session = useExamSession(exam, user?.id ?? null, onTimeout);
 
+  // ----- error states (invalid id / missing / empty) -----
   if (!exam) {
     return (
-      <div className="mx-auto grid min-h-[60vh] max-w-md place-items-center px-4 text-center">
-        <div className="card">
-          <AlertTriangle className="mx-auto h-6 w-6 text-warn" />
-          <p className="mt-3 text-sm text-white/70">Exam not found.</p>
-          <Link href="/exams" className="btn-primary mt-4">
-            <ArrowRight className="h-4 w-4" /> Back to exams
-          </Link>
-        </div>
-      </div>
+      <ErrorCard
+        title="Exam not found"
+        message={`We couldn't find an exam with id "${params.id}". It may have been moved or renamed.`}
+      />
     );
   }
-
   if (!exam.questions || exam.questions.length === 0) {
-    return (
-      <div className="mx-auto grid min-h-[60vh] max-w-md place-items-center px-4 text-center">
-        <div className="card">
-          <AlertTriangle className="mx-auto h-6 w-6 text-warn" />
-          <p className="mt-3 text-sm text-white/70">This exam has no questions yet. Please try another.</p>
-          <Link href="/exams" className="btn-primary mt-4">
-            <ArrowRight className="h-4 w-4" /> Browse exams
-          </Link>
-        </div>
-      </div>
-    );
+    return <ErrorCard title="No questions yet" message="This exam has no questions yet. Please try another." />;
   }
 
   const totalQ = exam.questions.length;
-  const q = exam.questions[current];
-  const ans = answers[q.id]?.picked ?? -1;
-  const marked = answers[q.id]?.marked ?? false;
-  const answeredCount = Object.values(answers).filter((a) => a.picked >= 0).length;
-  const markedCount = Object.values(answers).filter((a) => a.marked).length;
+  const q = exam.questions[session.current];
 
-  const setPicked = (idx: number) =>
-    setAnswers((a) => ({ ...a, [q.id]: { picked: idx, marked: a[q.id]?.marked ?? false } }));
-  const toggleMark = () =>
-    setAnswers((a) => ({
-      ...a,
-      [q.id]: { picked: a[q.id]?.picked ?? -1, marked: !(a[q.id]?.marked ?? false) },
-    }));
+  /** Grade locally, persist to storage + backend, then route to the results page. */
+  async function doSubmit(viaTimeout = false) {
+    if (!exam || submitting) return;
+    setSubmitting(true);
+    setShowConfirm(false);
 
-  const goto = (idx: number) => setCurrent(Math.max(0, Math.min(totalQ - 1, idx)));
+    const { startedAt, durationSec, timedOut } = session.finalize();
+    const result = gradeExam(exam, session.answers);
 
-  const submitNow = () => {
-    submittedRef.current = true;
-    tickRef.current && clearInterval(tickRef.current);
-    setPhase("result");
-  };
+    let serverAttemptId: number | null = null;
+    if (isOnline() && user) {
+      try {
+        const res = await api.submitExam(exam.id, {
+          answers: exam.questions.map((qq) => ({
+            question_id: qq.id,
+            picked: session.answers[qq.id]?.picked ?? -1,
+            time_taken: 0,
+          })),
+          duration_sec: durationSec,
+        });
+        serverAttemptId = typeof res?.attempt_id === "number" ? res.attempt_id : null;
+      } catch {
+        // Network failure shouldn't lose the candidate's work — we still have the
+        // full local snapshot, so we proceed to the local results page.
+        toast.error("Couldn't sync to server — showing your results locally.", 4000);
+      }
+    }
 
-  if (phase === "intro") {
-    return <IntroScreen exam={exam} onStart={() => setPhase("running")} onBack={() => router.push("/exams")} />;
+    const attemptId = session.attemptId ?? `att_${Date.now()}`;
+    const stored: StoredAttempt = {
+      attemptId,
+      serverAttemptId,
+      examId: exam.id,
+      examName: exam.name,
+      examCompany: exam.company,
+      userId: user?.id ?? null,
+      startedAt,
+      submittedAt: Date.now(),
+      durationSec,
+      totalSec: exam.duration_min * 60,
+      timedOut: timedOut || viaTimeout,
+      result,
+    };
+    saveAttempt(stored);
+    session.discard();
+
+    if (!viaTimeout) toast.success("Exam submitted — calculating your score…", 2500);
+    router.push(`/results/${attemptId}`);
   }
-  if (phase === "result") {
+
+  // ----- intro screen -----
+  if (session.status === "idle") {
     return (
-      <ResultScreen
+      <IntroScreen
         exam={exam}
-        answers={answers}
-        timedOut={timedOut}
-        elapsedSec={Math.max(0, exam.duration_min * 60 - secondsLeft)}
-        onRetry={() => {
-          setAnswers({});
-          setCurrent(0);
-          setTimedOut(false);
-          submittedRef.current = false;
-          setPhase("running");
-        }}
+        hasResumable={session.restored}
+        onBegin={() => session.begin({ resume: false })}
+        onResume={() => session.begin({ resume: true })}
+        onBack={() => router.push("/exams")}
+        isGuest={!user}
       />
     );
   }
 
-  const sectionAnswered = (section: string) =>
-    exam.questions.filter((qq) => qq.section === section && (answers[qq.id]?.picked ?? -1) >= 0).length;
-  const sectionTotal = (section: string) => exam.questions.filter((qq) => qq.section === section).length;
+  // ----- running / submitting screen -----
+  const ans = session.answers[q.id]?.picked ?? -1;
+  const marked = session.answers[q.id]?.marked ?? false;
+  const sectionAnswered = (s: string) =>
+    exam.questions.filter((qq) => qq.section === s && (session.answers[qq.id]?.picked ?? -1) >= 0).length;
+  const sectionTotal = (s: string) => exam.questions.filter((qq) => qq.section === s).length;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6">
       {/* Top bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 min-w-0">
-          <Link href="/exams" className="btn-soft"><ChevronLeft className="h-3.5 w-3.5" /> Exit</Link>
+        <div className="flex min-w-0 items-center gap-2">
+          <button onClick={() => router.push("/exams")} className="btn-soft">
+            <ChevronLeft className="h-3.5 w-3.5" /> Exit
+          </button>
           <span className="chip truncate">{exam.name}</span>
           {exam.company && <span className="chip">{exam.company}</span>}
         </div>
         <div className="flex items-center gap-2">
-          <TimerPill secondsLeft={secondsLeft} totalSec={exam.duration_min * 60} />
-          <button onClick={submitNow} className="btn-primary"><Send className="h-3.5 w-3.5" /> Submit</button>
+          <TimerPill secondsLeft={session.secondsLeft} totalSec={exam.duration_min * 60} />
+          <button onClick={() => setShowConfirm(true)} disabled={submitting} className="btn-primary disabled:opacity-60">
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />} Submit
+          </button>
         </div>
       </div>
 
@@ -173,7 +157,7 @@ export default function TakeExamPage() {
         {/* Main panel */}
         <div className="card">
           <div className="flex items-center justify-between text-xs text-white/55">
-            <span>Question {current + 1} of {totalQ}</span>
+            <span>Question {session.current + 1} of {totalQ}</span>
             <span className="inline-flex items-center gap-2">
               <span className="chip">{q.section}</span>
               <span className="chip">{q.difficulty}</span>
@@ -182,13 +166,15 @@ export default function TakeExamPage() {
 
           <h2 className="mt-3 text-lg font-medium leading-relaxed text-white/95 sm:text-xl">{q.text}</h2>
 
-          <div className="mt-5 grid gap-2">
+          <div className="mt-5 grid gap-2" role="radiogroup" aria-label="Answer options">
             {q.options.map((opt, i) => {
               const picked = ans === i;
               return (
                 <button
                   key={i}
-                  onClick={() => setPicked(i)}
+                  role="radio"
+                  aria-checked={picked}
+                  onClick={() => session.selectOption(q.id, i)}
                   className={cn(
                     "flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm transition",
                     picked
@@ -213,53 +199,48 @@ export default function TakeExamPage() {
           <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={toggleMark}
-                className={cn(
-                  "btn-soft",
-                  marked && "border-warn/40 bg-warn/15 text-warn",
-                )}
+                onClick={() => session.toggleMark(q.id)}
+                className={cn("btn-soft", marked && "border-warn/40 bg-warn/15 text-warn")}
               >
                 <Flag className="h-3.5 w-3.5" /> {marked ? "Marked for review" : "Mark for review"}
               </button>
-              <button
-                onClick={() => {
-                  setPicked(-1);
-                  setAnswers((a) => ({ ...a, [q.id]: { picked: -1, marked: a[q.id]?.marked ?? false } }));
-                }}
-                className="btn-soft"
-              >
-                Clear answer
+              <button onClick={() => session.clearResponse(q.id)} className="btn-soft">
+                <Eraser className="h-3.5 w-3.5" /> Clear response
               </button>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => goto(current - 1)} disabled={current === 0} className="btn-ghost disabled:opacity-40">
+              <button onClick={session.prev} disabled={session.current === 0} className="btn-ghost disabled:opacity-40">
                 <ChevronLeft className="h-3.5 w-3.5" /> Prev
               </button>
-              <button onClick={() => goto(current + 1)} disabled={current === totalQ - 1} className="btn-primary disabled:opacity-40">
-                Next <ChevronRight className="h-3.5 w-3.5" />
-              </button>
+              {session.current === totalQ - 1 ? (
+                <button onClick={() => setShowConfirm(true)} className="btn-primary">
+                  <Send className="h-3.5 w-3.5" /> Review &amp; submit
+                </button>
+              ) : (
+                <button onClick={session.next} className="btn-primary">
+                  Next <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              )}
             </div>
           </div>
         </div>
 
         {/* Side rail */}
         <aside className="space-y-4">
-          {/* Progress */}
           <div className="card">
             <div className="flex items-center justify-between">
               <p className="text-xs uppercase tracking-widest text-white/45">Progress</p>
-              <span className="text-xs text-white/55">
-                {answeredCount}/{totalQ}
-              </span>
+              <span className="text-xs text-white/55">{session.counts.answered}/{totalQ}</span>
             </div>
             <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
               <div
                 className="h-full bg-gradient-to-r from-brand-500 to-accent-400 transition-[width]"
-                style={{ width: `${(answeredCount / totalQ) * 100}%` }}
+                style={{ width: `${(session.counts.answered / totalQ) * 100}%` }}
               />
             </div>
-            <div className="mt-3 flex items-center gap-2 text-xs text-white/55">
-              <span className="inline-flex items-center gap-1"><Flag className="h-3 w-3 text-warn" /> {markedCount} flagged</span>
+            <div className="mt-3 flex items-center gap-3 text-xs text-white/55">
+              <span className="inline-flex items-center gap-1"><Flag className="h-3 w-3 text-warn" /> {session.counts.marked} flagged</span>
+              <span>{session.counts.unanswered} left</span>
             </div>
           </div>
 
@@ -290,15 +271,16 @@ export default function TakeExamPage() {
             <p className="text-xs uppercase tracking-widest text-white/45">Question palette</p>
             <div className="mt-3 grid grid-cols-6 gap-1.5">
               {exam.questions.map((qq, i) => {
-                const a = answers[qq.id]?.picked ?? -1;
-                const isCurrent = i === current;
+                const a = session.answers[qq.id]?.picked ?? -1;
+                const isCurrent = i === session.current;
                 const isAnswered = a >= 0;
-                const isMarked = answers[qq.id]?.marked;
+                const isMarked = session.answers[qq.id]?.marked;
                 return (
                   <button
                     key={qq.id}
-                    onClick={() => goto(i)}
-                    title={`Q${i + 1}${isMarked ? " (marked)" : ""}`}
+                    onClick={() => session.setCurrent(i)}
+                    aria-label={`Go to question ${i + 1}${isMarked ? " (marked for review)" : ""}${isAnswered ? " (answered)" : ""}`}
+                    aria-current={isCurrent}
                     className={cn(
                       "grid h-8 w-8 place-items-center rounded-md text-[11px] transition",
                       isCurrent
@@ -323,16 +305,68 @@ export default function TakeExamPage() {
           </div>
         </aside>
       </div>
+
+      {/* Submit confirmation modal */}
+      {showConfirm && (
+        <ConfirmModal
+          counts={session.counts}
+          submitting={submitting}
+          onCancel={() => setShowConfirm(false)}
+          onConfirm={() => void doSubmit(false)}
+        />
+      )}
     </div>
   );
 }
 
 /* ---------------- Intro ---------------- */
 
-function IntroScreen({ exam, onStart, onBack }: { exam: Exam; onStart: () => void; onBack: () => void }) {
+function IntroScreen({
+  exam,
+  hasResumable,
+  onBegin,
+  onResume,
+  onBack,
+  isGuest,
+}: {
+  exam: Exam;
+  hasResumable: boolean;
+  onBegin: () => void;
+  onResume: () => void;
+  onBack: () => void;
+  isGuest: boolean;
+}) {
+  // Re-check storage so the resume banner reflects the latest snapshot.
+  const [resumeInfo, setResumeInfo] = useState<{ answered: number } | null>(null);
+  useEffect(() => {
+    if (!hasResumable) return;
+    const s = loadSession(exam.id);
+    if (s) {
+      const answered = Object.values(s.answers).filter((a) => a.picked >= 0).length;
+      setResumeInfo({ answered });
+    }
+  }, [hasResumable, exam.id]);
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
       <button onClick={onBack} className="btn-soft"><ChevronLeft className="h-3.5 w-3.5" /> All exams</button>
+
+      {isGuest && (
+        <div className="mt-6">
+          <GuestBanner message="This mock is free. Sign in to save the attempt to your history, XP and the leaderboard." />
+        </div>
+      )}
+
+      {resumeInfo && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-400/30 bg-brand-500/10 px-4 py-3 text-sm">
+          <span className="inline-flex items-center gap-2 text-brand-100">
+            <RotateCcw className="h-4 w-4" /> You have an unfinished attempt ({resumeInfo.answered} answered). Resume where you left off?
+          </span>
+          <button onClick={onResume} className="btn-primary px-3 py-1.5 text-xs">
+            <RotateCcw className="h-3.5 w-3.5" /> Resume attempt
+          </button>
+        </div>
+      )}
 
       <div className="card mt-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
@@ -358,18 +392,18 @@ function IntroScreen({ exam, onStart, onBack }: { exam: Exam; onStart: () => voi
         </div>
 
         <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.02] p-4">
-          <p className="text-xs uppercase tracking-widest text-white/45">Rules</p>
+          <p className="text-xs uppercase tracking-widest text-white/45">Instructions</p>
           <ul className="mt-2 space-y-1.5 text-sm text-white/75">
-            <li className="flex gap-2"><Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-300" /> Timer auto-submits when it reaches 00:00.</li>
-            <li className="flex gap-2"><Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" /> Mark questions for review and revisit them via the palette.</li>
-            <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" /> Sectional + overall score is shown instantly with explanations.</li>
-            <li className="flex gap-2"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-400" /> No penalty for wrong answers in this practice mode.</li>
+            <li className="flex gap-2"><Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-300" /> The countdown auto-submits at 00:00, and it keeps running even if you refresh.</li>
+            <li className="flex gap-2"><Flag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warn" /> Mark questions for review and jump around via the palette.</li>
+            <li className="flex gap-2"><CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" /> Answers save automatically — your progress is restored if you reload.</li>
+            <li className="flex gap-2"><Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent-400" /> Sectional + overall score with explanations is shown instantly. No negative marking.</li>
           </ul>
         </div>
 
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <Link href="/leaderboard" className="btn-ghost"><Trophy className="h-4 w-4" /> Leaderboard</Link>
-          <button onClick={onStart} className="btn-primary"><Sparkles className="h-4 w-4" /> Start exam</button>
+          <button onClick={onBegin} className="btn-primary"><Sparkles className="h-4 w-4" /> Begin Exam</button>
         </div>
       </div>
     </div>
@@ -385,263 +419,86 @@ function Mini({ label, value }: { label: string; value: string }) {
   );
 }
 
-function SaveStatus({ state }: { state: "idle" | "saving" | "saved" | "guest" | "error" }) {
-  if (state === "idle") return null;
-  const map = {
-    saving: { cls: "border-white/10 bg-white/5 text-white/60", dot: "bg-brand-400 animate-pulse", label: "Saving attempt…" },
-    saved: { cls: "border-success/30 bg-success/10 text-success", dot: "bg-success", label: "Saved to your history" },
-    guest: { cls: "border-warn/30 bg-warn/10 text-warn", dot: "bg-warn", label: "Guest mode — not saved" },
-    error: { cls: "border-danger/30 bg-danger/10 text-danger", dot: "bg-danger", label: "Couldn't save — shown locally" },
-  } as const;
-  const m = map[state];
-  return (
-    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${m.cls}`}>
-      <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
-      {m.label}
-    </span>
-  );
-}
+/* ---------------- Confirm modal ---------------- */
 
-/* ---------------- Result ---------------- */
-
-function ResultScreen({
-  exam,
-  answers,
-  elapsedSec,
-  timedOut,
-  onRetry,
+function ConfirmModal({
+  counts,
+  submitting,
+  onCancel,
+  onConfirm,
 }: {
-  exam: Exam;
-  answers: Record<string, Picked>;
-  elapsedSec: number;
-  timedOut?: boolean;
-  onRetry: () => void;
+  counts: { answered: number; unanswered: number; marked: number; total: number };
+  submitting: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
 }) {
-  const totalQ = exam.questions.length;
-  const graded = exam.questions.map((q) => {
-    const picked = answers[q.id]?.picked ?? -1;
-    return { q, picked, isCorrect: picked === q.correct_index };
-  });
-  const correct = graded.filter((g) => g.isCorrect).length;
-  const score = totalQ ? Math.round((correct / totalQ) * 100) : 0;
-  const accuracy = totalQ ? Math.round((correct / totalQ) * 1000) / 10 : 0;
-  const skipped = graded.filter((g) => g.picked < 0).length;
-
-  // Persist the attempt to the backend so it counts toward XP / leaderboard /
-  // analytics — but only for signed-in users. Guests still see full results.
-  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "guest" | "error">("idle");
-  const savedRef = useRef(false);
+  // Close on Escape for keyboard users.
   useEffect(() => {
-    if (savedRef.current) return;
-    savedRef.current = true;
-    const user = getStoredUser();
-    if (!isOnline() || !user) {
-      setSaveState("guest");
-      return;
-    }
-    setSaveState("saving");
-    const payload = {
-      answers: exam.questions.map((q) => ({
-        question_id: q.id,
-        picked: answers[q.id]?.picked ?? -1,
-        time_taken: 0,
-      })),
-      duration_sec: elapsedSec,
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !submitting) onCancel();
     };
-    api
-      .submitExam(exam.id, payload)
-      .then(() => setSaveState("saved"))
-      .catch(() => setSaveState("error"));
-  }, [exam, answers, elapsedSec]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onCancel, submitting]);
 
-  const sectionScores = useMemo(() => {
-    const map: Record<string, { correct: number; total: number }> = {};
-    for (const g of graded) {
-      const s = g.q.section;
-      const b = (map[s] = map[s] ?? { correct: 0, total: 0 });
-      b.total += 1;
-      if (g.isCorrect) b.correct += 1;
-    }
-    return map;
-  }, [graded]);
-
-  const fmt = (s: number) => `${Math.floor(s / 60)}m ${s % 60}s`;
-
-  const confetti = useRef<ConfettiHandle>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (score >= 60) {
-      const t = setTimeout(() => {
-        const rect = containerRef.current?.getBoundingClientRect();
-        const x = rect ? rect.width / 2 : undefined;
-        const y = rect ? 320 : undefined;
-        confetti.current?.fire(x, y);
-      }, 700);
-      return () => clearTimeout(t);
-    }
-  }, [score]);
-
-  return (
-    <div ref={containerRef} className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6">
-      <ConfettiBurst ref={confetti} />
-      {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <span className="chip"><CheckCircle2 className="h-3 w-3 text-success" /> Result</span>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">{exam.name} — calibrated</h1>
-          <p className="mt-1 text-white/60">
-            Solo session · {fmt(elapsedSec)} elapsed
-            {timedOut && <span className="ml-2 text-warn">· auto-submitted (time up)</span>}
-          </p>
-          <div className="mt-2"><SaveStatus state={saveState} /></div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button onClick={onRetry} className="btn-ghost"><RefreshCcw className="h-4 w-4" /> Retake</button>
-          <Link href="/leaderboard" className="btn-primary"><Trophy className="h-4 w-4" /> Leaderboard</Link>
-        </div>
-      </div>
-
-      {saveState === "guest" && (
-        <div className="mt-4">
-          <GuestBanner message="You're in guest mode — this attempt isn't saved. Sign in to record it to your history, XP and the leaderboard." />
-        </div>
-      )}
-
-      {/* Top stats */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-4">
-        <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 lg:col-span-1">
-          <LiquidBlob
-            className="-right-16 -top-16 h-56 w-56 opacity-50"
-            colorFrom="#6b7eff"
-            colorTo="#d946ef"
-          />
-          <div className="relative grid place-items-center">
-            <HoloRing value={score} size={210} stroke={12} label="overall" />
-          </div>
-        </div>
-        <div className="card grid grid-cols-2 gap-3 lg:col-span-3">
-          <Stat label="Correct" value={`${correct}/${totalQ}`} tone="success" />
-          <Stat label="Accuracy" value={`${accuracy}%`} tone="brand" />
-          <Stat label="Skipped" value={`${skipped}`} tone={skipped ? "warn" : "success"} />
-          <Stat label="Time used" value={fmt(elapsedSec)} tone="brand" />
-        </div>
-      </div>
-
-      {/* Section breakdown */}
-      <div className="mt-6 card">
-        <p className="text-xs uppercase tracking-widest text-white/45">Sectional breakdown</p>
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {Object.entries(sectionScores).map(([s, v]) => {
-            const pct = Math.round((v.correct / v.total) * 100);
-            return (
-              <div key={s} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/85">{s}</span>
-                  <span className="text-sm font-semibold text-gradient-accent">{pct}%</span>
-                </div>
-                <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/5">
-                  <div className="h-full bg-gradient-to-r from-brand-500 to-accent-400" style={{ width: `${pct}%` }} />
-                </div>
-                <div className="mt-2 text-xs text-white/45">
-                  {v.correct} correct / {v.total} questions
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Per-question review */}
-      <div className="mt-6 space-y-3">
-        <p className="text-xs uppercase tracking-widest text-white/45">Question-by-question review</p>
-        {graded.map((g, i) => (
-          <Review key={g.q.id} index={i} q={g.q} picked={g.picked} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function Stat({ label, value, tone = "brand" }: { label: string; value: string; tone?: "success" | "warn" | "brand" }) {
-  const tones = {
-    success: "from-success/20 to-success/0 text-success",
-    warn: "from-warn/20 to-warn/0 text-warn",
-    brand: "from-brand-500/20 to-brand-500/0 text-brand-200",
-  } as const;
-  return (
-    <div className={`rounded-xl border border-white/10 bg-gradient-to-b p-4 ${tones[tone]}`}>
-      <div className="text-2xl font-semibold tracking-tight text-white">{value}</div>
-      <div className="mt-1 text-xs uppercase tracking-widest opacity-80">{label}</div>
-    </div>
-  );
-}
-
-function Review({ index, q, picked }: { index: number; q: ExamQuestion; picked: number }) {
-  const correct = picked === q.correct_index;
-  const skipped = picked < 0;
   return (
     <div
-      className={cn(
-        "rounded-2xl border p-5",
-        skipped
-          ? "border-white/10 bg-white/[0.02]"
-          : correct
-          ? "border-success/20 bg-success/5"
-          : "border-danger/20 bg-danger/5",
-      )}
+      className="fixed inset-0 z-[90] grid place-items-center bg-ink-950/70 p-4 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Confirm submission"
+      onClick={onCancel}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-white/55">
-            <span>Q{index + 1}</span>
-            <span className="chip">{q.section}</span>
-            <span className="chip">{q.difficulty}</span>
+      <div
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-ink-900/95 p-6 shadow-glow"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight">Submit exam?</h3>
+            <p className="mt-1 text-sm text-white/55">Review your progress before final submission.</p>
           </div>
-          <p className="mt-2 text-sm text-white/95 sm:text-base">{q.text}</p>
+          <button onClick={onCancel} className="grid h-8 w-8 place-items-center rounded-md text-white/45 hover:bg-white/5 hover:text-white" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
         </div>
-        <span
-          className={cn(
-            "shrink-0 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest",
-            skipped ? "bg-white/10 text-white/55" : correct ? "bg-success/15 text-success" : "bg-danger/15 text-danger",
-          )}
-        >
-          {skipped ? "skipped" : correct ? "correct" : "wrong"}
-        </span>
-      </div>
 
-      <div className="mt-3 grid gap-2">
-        {q.options.map((opt, i) => {
-          const isCorrect = i === q.correct_index;
-          const isPicked = i === picked;
-          return (
-            <div
-              key={i}
-              className={cn(
-                "flex items-center gap-3 rounded-lg border px-3 py-2 text-sm",
-                isCorrect
-                  ? "border-success/30 bg-success/10 text-success"
-                  : isPicked
-                  ? "border-danger/30 bg-danger/10 text-danger"
-                  : "border-white/10 bg-white/[0.02] text-white/70",
-              )}
-            >
-              <span className="grid h-5 w-5 place-items-center rounded-full border border-white/15 text-[10px]">
-                {String.fromCharCode(65 + i)}
-              </span>
-              <span className="flex-1">{opt}</span>
-              {isCorrect && <CheckCircle2 className="h-4 w-4 text-success" />}
-              {isPicked && !isCorrect && <XCircle className="h-4 w-4 text-danger" />}
-            </div>
-          );
-        })}
-      </div>
-
-      {q.explanation && (
-        <div className="mt-3 inline-flex w-full items-start gap-2 rounded-lg border border-brand-400/20 bg-brand-500/5 p-3 text-sm text-brand-100">
-          <Lightbulb className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
-          <span>{q.explanation}</span>
+        <div className="mt-5 grid grid-cols-3 gap-2">
+          <ModalStat label="Attempted" value={counts.answered} tone="success" />
+          <ModalStat label="Unattempted" value={counts.unanswered} tone={counts.unanswered ? "warn" : "success"} />
+          <ModalStat label="Marked" value={counts.marked} tone="brand" />
         </div>
-      )}
+
+        {counts.unanswered > 0 && (
+          <p className="mt-4 inline-flex items-start gap-2 rounded-lg border border-warn/25 bg-warn/10 p-3 text-xs text-warn">
+            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+            You have {counts.unanswered} unanswered question{counts.unanswered !== 1 ? "s" : ""}. They'll be marked incorrect.
+          </p>
+        )}
+
+        <div className="mt-6 flex justify-end gap-2">
+          <button onClick={onCancel} disabled={submitting} className="btn-ghost disabled:opacity-50">
+            Keep going
+          </button>
+          <button onClick={onConfirm} disabled={submitting} className="btn-primary disabled:opacity-60">
+            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Submit now
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModalStat({ label, value, tone }: { label: string; value: number; tone: "success" | "warn" | "brand" }) {
+  const tones = {
+    success: "text-success",
+    warn: "text-warn",
+    brand: "text-brand-200",
+  } as const;
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 text-center">
+      <div className={cn("text-2xl font-semibold tracking-tight", tones[tone])}>{value}</div>
+      <div className="mt-1 text-[10px] uppercase tracking-widest text-white/45">{label}</div>
     </div>
   );
 }
@@ -649,21 +506,19 @@ function Review({ index, q, picked }: { index: number; q: ExamQuestion; picked: 
 /* ---------------- Timer pill ---------------- */
 
 function TimerPill({ secondsLeft, totalSec }: { secondsLeft: number; totalSec: number }) {
-  const pct = (secondsLeft / totalSec) * 100;
+  const pct = totalSec ? (secondsLeft / totalSec) * 100 : 0;
   const danger = secondsLeft < 60;
-  const m = Math.floor(secondsLeft / 60);
-  const s = secondsLeft % 60;
   return (
     <div
       className={cn(
         "relative flex items-center gap-2 overflow-hidden rounded-full border px-3 py-1.5 text-sm font-mono",
-        danger
-          ? "border-danger/40 bg-danger/15 text-danger"
-          : "border-white/10 bg-white/5 text-white/85",
+        danger ? "border-danger/40 bg-danger/15 text-danger" : "border-white/10 bg-white/5 text-white/85",
       )}
+      role="timer"
+      aria-label={`Time remaining ${formatClock(secondsLeft)}`}
     >
       <Clock className={cn("h-3.5 w-3.5", danger ? "text-danger" : "text-brand-300")} />
-      <span>{String(m).padStart(2, "0")}:{String(s).padStart(2, "0")}</span>
+      <span>{formatClock(secondsLeft)}</span>
       <span
         className={cn(
           "ml-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] uppercase tracking-widest",
@@ -676,6 +531,23 @@ function TimerPill({ secondsLeft, totalSec }: { secondsLeft: number; totalSec: n
         className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-brand-500 to-accent-400 transition-[width]"
         style={{ width: `${pct}%` }}
       />
+    </div>
+  );
+}
+
+/* ---------------- Error card ---------------- */
+
+function ErrorCard({ title, message }: { title: string; message: string }) {
+  return (
+    <div className="mx-auto grid min-h-[60vh] max-w-md place-items-center px-4 text-center">
+      <div className="card">
+        <AlertTriangle className="mx-auto h-6 w-6 text-warn" />
+        <h2 className="mt-3 text-lg font-semibold tracking-tight">{title}</h2>
+        <p className="mt-1 text-sm text-white/60">{message}</p>
+        <div className="mt-4 flex justify-center gap-2">
+          <Link href="/exams" className="btn-primary"><ArrowRight className="h-4 w-4" /> Browse exams</Link>
+        </div>
+      </div>
     </div>
   );
 }

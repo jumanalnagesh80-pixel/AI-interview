@@ -3,6 +3,7 @@ import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { BackgroundFX } from "@/components/BackgroundFX";
+import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
   title: "AceTerview — AI-Powered Interview Coach",
@@ -30,11 +31,13 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className="min-h-screen bg-ink-950 text-white antialiased">
         <BackgroundFX />
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <Navbar />
-          <main className="flex-1">{children}</main>
-          <Footer />
-        </div>
+        <ToastProvider>
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <Navbar />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </ToastProvider>
       </body>
     </html>
   );
