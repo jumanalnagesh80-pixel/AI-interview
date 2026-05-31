@@ -54,8 +54,8 @@ const config: Config = {
           "radial-gradient(60% 60% at 50% 0%, rgba(81,88,255,0.25) 0%, rgba(6,7,13,0) 60%), radial-gradient(40% 40% at 80% 30%, rgba(34,211,238,0.18) 0%, rgba(6,7,13,0) 70%)",
       },
       boxShadow: {
-        glow: "0 0 0 1px rgba(255,255,255,0.06), 0 20px 60px -20px rgba(81,88,255,0.45)",
-        soft: "0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px -10px rgba(0,0,0,0.6)",
+        glow: "0 1px 0 rgba(255,255,255,0.05) inset, 0 10px 30px -16px rgba(0,0,0,0.7)",
+        soft: "0 1px 0 rgba(255,255,255,0.04) inset, 0 8px 24px -12px rgba(0,0,0,0.55)",
       },
       animation: {
         "pulse-slow": "pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite",

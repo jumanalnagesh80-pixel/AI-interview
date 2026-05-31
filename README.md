@@ -1,4 +1,4 @@
-# AceTerview AI
+# PrepMate AI
 
 The most advanced AI interview prep platform — face-to-face AI interviews, resume analysis, voice + body language scoring, real-time feedback, **adaptive practice**, **personal analytics**, **a complete catalog of Indian competitive exams (UPSC, SSC, IBPS, SBI, RBI, NABARD, RRB, NDA, CDS, CAT, GATE)**, leaderboard, and a full Python FastAPI backend with SQLite.
 

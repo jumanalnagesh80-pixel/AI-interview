@@ -526,7 +526,7 @@ function ComparisonSection() {
     <section className="mx-auto mt-24 max-w-7xl px-4 sm:px-6">
       <SectionHeader
         eyebrow="vs the rest"
-        title="How AceTerview compares to other AI interview sites"
+        title="How PrepMate compares to other AI interview sites"
         subtitle="We benchmarked the popular tools and built the gaps."
       />
 
@@ -536,7 +536,7 @@ function ComparisonSection() {
             <tr>
               <th className="px-5 py-4">Feature</th>
               <th className="px-5 py-4">
-                <span className="text-white">AceTerview</span>
+                <span className="text-white">PrepMate</span>
               </th>
               <th className="px-5 py-4">Other AI sites</th>
             </tr>

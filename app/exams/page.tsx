@@ -22,8 +22,7 @@ import {
   Loader2,
   Play,
 } from "lucide-react";
-import { EXAMS, CATEGORY_LABEL, type Exam, type ExamCategory } from "@/lib/exams";
-import { Tilt3D } from "@/components/Tilt3D";
+import { EXAMS, CATEGORY_LABEL, QUESTION_BANK_SIZE, type Exam, type ExamCategory } from "@/lib/exams";
 import { ExamCardSkeleton } from "@/components/Skeleton";
 import { useToast } from "@/components/Toast";
 import { cn } from "@/lib/utils";
@@ -91,7 +90,7 @@ export default function ExamsPage() {
     router.push(`/exams/${exam.id}`);
   };
 
-  const totalQs = EXAMS.reduce((s, e) => s + e.total_questions, 0);
+  const totalQs = QUESTION_BANK_SIZE;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
@@ -177,14 +176,13 @@ export default function ExamsPage() {
                 </div>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {list.map((e) => (
-                    <Tilt3D key={e.id} maxDeg={6} className="h-full">
-                      <ExamCard
-                        exam={e}
-                        onStart={() => startExam(e)}
-                        navigating={navigatingId === e.id}
-                        disabled={navigatingId !== null && navigatingId !== e.id}
-                      />
-                    </Tilt3D>
+                    <ExamCard
+                      key={e.id}
+                      exam={e}
+                      onStart={() => startExam(e)}
+                      navigating={navigatingId === e.id}
+                      disabled={navigatingId !== null && navigatingId !== e.id}
+                    />
                   ))}
                 </div>
               </section>
@@ -247,61 +245,52 @@ function ExamCard({
   disabled: boolean;
 }) {
   return (
-    <div className="group relative h-full overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:-translate-y-0.5 hover:border-white/20">
-      {/* gradient halo */}
-      <div className={`absolute -right-16 -top-16 h-44 w-44 rounded-full bg-gradient-to-br ${exam.color} opacity-25 blur-2xl transition group-hover:opacity-60`} />
-      {/* shimmer ring on hover */}
-      <div className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/5 transition group-hover:ring-brand-400/30" />
-
-      <div className="relative">
-        <div className="flex items-center justify-between">
-          <div className={`grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ${exam.color} text-white shadow-soft`}>
-            {ICONS[exam.icon] ?? <Building2 className="h-5 w-5" />}
-          </div>
-          <DifficultyChip difficulty={exam.difficulty} />
+    <div className="group relative flex h-full flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:border-white/20 hover:bg-white/[0.05]">
+      <div className="flex items-center justify-between">
+        <div className={`grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br ${exam.color} text-white shadow-soft`}>
+          {ICONS[exam.icon] ?? <Building2 className="h-5 w-5" />}
         </div>
+        <DifficultyChip difficulty={exam.difficulty} />
+      </div>
 
-        {/* The title links to the detail page (keyboard accessible). */}
-        <div className="mt-4 flex items-baseline justify-between gap-2">
-          <Link
-            href={`/exams/${exam.id}`}
-            className="text-lg font-medium outline-none after:absolute after:inset-0 after:content-[''] focus-visible:underline"
-          >
-            {exam.name}
-          </Link>
-          {exam.company && <span className="chip relative z-10">{exam.company}</span>}
-        </div>
-        <p className="mt-1 line-clamp-2 text-sm text-white/55">{exam.description}</p>
+      <div className="mt-4 flex items-baseline justify-between gap-2">
+        <Link
+          href={`/exams/${exam.id}`}
+          className="text-lg font-medium text-white outline-none hover:text-brand-200 focus-visible:underline"
+        >
+          {exam.name}
+        </Link>
+        {exam.company && <span className="chip">{exam.company}</span>}
+      </div>
+      <p className="mt-1 line-clamp-2 text-sm text-white/55">{exam.description}</p>
 
-        <div className="mt-4 flex flex-wrap gap-1.5">
-          {exam.sections.map((s) => (
-            <span key={s} className="chip text-[11px]">{s}</span>
-          ))}
-        </div>
+      <div className="mt-4 flex flex-wrap gap-1.5">
+        {exam.sections.map((s) => (
+          <span key={s} className="chip text-[11px]">{s}</span>
+        ))}
+      </div>
 
-        <div className="mt-5 flex items-center justify-between gap-2 border-t border-white/5 pt-4 text-xs text-white/55">
-          <span className="inline-flex items-center gap-1.5"><ListChecks className="h-3.5 w-3.5" /> {exam.total_questions} Q</span>
-          <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {exam.duration_min} min</span>
-          {/* Explicit, accessible Start button — sits above the title overlay link (z-10). */}
-          <button
-            type="button"
-            onClick={onStart}
-            disabled={navigating || disabled}
-            aria-label={`Start ${exam.name}`}
-            aria-busy={navigating}
-            className="btn-primary relative z-10 px-3 py-1.5 text-xs disabled:opacity-60"
-          >
-            {navigating ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading
-              </>
-            ) : (
-              <>
-                <Play className="h-3.5 w-3.5" /> Start
-              </>
-            )}
-          </button>
-        </div>
+      <div className="mt-auto flex items-center justify-between gap-2 border-t border-white/5 pt-4 text-xs text-white/55">
+        <span className="inline-flex items-center gap-1.5"><ListChecks className="h-3.5 w-3.5" /> {exam.total_questions} Q</span>
+        <span className="inline-flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> {exam.duration_min} min</span>
+        <button
+          type="button"
+          onClick={onStart}
+          disabled={navigating || disabled}
+          aria-label={`Start ${exam.name}`}
+          aria-busy={navigating}
+          className="btn-primary px-4 py-1.5 text-xs disabled:opacity-60"
+        >
+          {navigating ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading
+            </>
+          ) : (
+            <>
+              <Play className="h-3.5 w-3.5" /> Start
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
@@ -314,7 +303,7 @@ function DifficultyChip({ difficulty }: { difficulty: "Easy" | "Medium" | "Hard"
       : difficulty === "Medium"
       ? "bg-brand-500/15 text-brand-200 border-brand-400/20"
       : "bg-danger/15 text-danger border-danger/20";
-  return <span className={`relative z-10 inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${tone}`}>{difficulty}</span>;
+  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-widest ${tone}`}>{difficulty}</span>;
 }
 
 function Stat({ icon, label, value, hint }: { icon: React.ReactNode; label: string; value: string; hint: string }) {

@@ -24,12 +24,13 @@ import { HoloRing } from "@/components/HoloRing";
 import { Tilt3D } from "@/components/Tilt3D";
 import { LiquidBlob } from "@/components/LiquidBlob";
 import { ProgressRing } from "@/components/ProgressRing";
-import { adminApi, getStoredUser, isAdmin, isOwner, isOnline, type AuthUser } from "@/lib/api";
+import { adminApi, getStoredUser, isOwner, isOnline, type AuthUser } from "@/lib/api";
 
 interface Overview {
   owner: { name: string; email: string };
   totals: Record<string, number>;
   this_week: Record<string, number>;
+  today?: { signups: number; logins: number };
 }
 
 interface Attempt {
@@ -45,10 +46,22 @@ interface Attempt {
   created_at: string;
 }
 
+interface ActivityRow {
+  id: number;
+  name: string;
+  email: string;
+  role?: string;
+  plan?: string;
+  created_at?: string | null;
+  last_login_at?: string | null;
+}
+
 export default function AdminPage() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [data, setData] = useState<Overview | null>(null);
   const [recent, setRecent] = useState<Attempt[]>([]);
+  const [signups, setSignups] = useState<ActivityRow[]>([]);
+  const [logins, setLogins] = useState<ActivityRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,28 +70,30 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (!user || !isAdmin(user)) return;
+    if (!user || !isOwner(user)) return;
     setLoading(true);
-    Promise.all([adminApi.overview(), adminApi.recentAttempts()])
-      .then(([o, r]) => {
+    Promise.all([adminApi.overview(), adminApi.recentAttempts(), adminApi.activity()])
+      .then(([o, r, act]) => {
         setData(o);
         setRecent(r);
+        setSignups(act?.recent_signups ?? []);
+        setLogins(act?.recent_logins ?? []);
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load admin data"))
       .finally(() => setLoading(false));
   }, [user]);
 
   if (!user) {
-    return <Gate title="Admin sign-in required" subtitle="Please sign in as the owner to access the admin channel." cta="Sign in" href="/login" />;
+    return <Gate title="Owner sign-in required" subtitle="Sign in with the owner account to open the admin channel." cta="Sign in" href="/login" />;
   }
-  if (!isAdmin(user)) {
-    return <Gate title="Restricted area" subtitle={`This channel is reserved for the owner only.`} cta="Back to dashboard" href="/dashboard" />;
+  if (!isOwner(user)) {
+    return <Gate title="Restricted area" subtitle="This channel is reserved for the owner only." cta="Back to dashboard" href="/dashboard" />;
   }
   if (!isOnline()) {
     return <Gate title="Backend offline" subtitle="The admin channel needs the API. Start the backend and reload." cta="Open dashboard" href="/dashboard" />;
   }
 
-  const isOwnerView = isOwner(user);
+  const isOwnerView = true;
   const ownerName = data?.owner.name || "NAGESH JUMANAL";
 
   const cards: { icon: React.ReactNode; label: string; value: number; week?: number; tone: "brand" | "success" | "warn" }[] = data
@@ -165,6 +180,67 @@ export default function AdminPage() {
             <Tilt3D maxDeg={5}>
               <LinkCard href="/leaderboard" icon={<Trophy className="h-4 w-4" />} title="Public leaderboard" desc="Top performers, period filters" />
             </Tilt3D>
+          </section>
+
+          {/* Who's using the app — signups & logins (owner audit feed) */}
+          <section className="mt-8 grid gap-6 lg:grid-cols-2">
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-white/45">Recent sign-ups</p>
+                  <p className="text-lg font-medium">Newest accounts</p>
+                </div>
+                {data.today && (
+                  <span className="chip"><Sparkles className="h-3 w-3 text-brand-400" /> {data.today.signups} today</span>
+                )}
+              </div>
+              <ul className="mt-3 divide-y divide-white/5">
+                {signups.length === 0 && <li className="py-6 text-center text-sm text-white/45">No sign-ups yet.</li>}
+                {signups.map((u) => (
+                  <li key={u.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-600/30 text-[11px] font-medium ring-1 ring-white/10">
+                        {u.name.split(/\s+/).map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{u.name}</div>
+                        <div className="truncate text-xs text-white/45">{u.email}</div>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-xs text-white/45">{formatRelative(u.created_at ?? "")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="card">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-widest text-white/45">Recent logins</p>
+                  <p className="text-lg font-medium">Who's active</p>
+                </div>
+                {data.today && (
+                  <span className="chip"><CheckCircle2 className="h-3 w-3 text-success" /> {data.today.logins} today</span>
+                )}
+              </div>
+              <ul className="mt-3 divide-y divide-white/5">
+                {logins.length === 0 && <li className="py-6 text-center text-sm text-white/45">No logins yet.</li>}
+                {logins.map((u) => (
+                  <li key={u.id} className="flex items-center justify-between gap-3 py-2.5">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-success/20 text-[11px] font-medium ring-1 ring-white/10">
+                        {u.name.split(/\s+/).map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{u.name}</div>
+                        <div className="truncate text-xs text-white/45">{u.email}</div>
+                      </div>
+                    </div>
+                    <span className="shrink-0 text-xs text-white/45">{formatRelative(u.last_login_at ?? "")}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </section>
 
           {/* Recent activity */}
@@ -320,7 +396,9 @@ function overallEngagement(d: Overview): number {
 }
 
 function formatRelative(iso: string) {
+  if (!iso) return "—";
   const dt = new Date(iso);
+  if (isNaN(dt.getTime())) return "—";
   const diff = (Date.now() - dt.getTime()) / 1000;
   if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.round(diff / 60)}m ago`;

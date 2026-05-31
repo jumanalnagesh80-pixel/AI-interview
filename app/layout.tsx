@@ -6,19 +6,20 @@ import { BackgroundFX } from "@/components/BackgroundFX";
 import { ToastProvider } from "@/components/Toast";
 
 export const metadata: Metadata = {
-  title: "AceTerview — AI-Powered Interview Coach",
+  title: "PrepMate — Interview & Exam Prep",
   description:
-    "The most advanced AI interview prep platform. Face-to-face AI interviews, resume analysis, voice & body language scoring, company simulators (Google, Amazon, TCS, Infosys), and real-time feedback.",
+    "PrepMate helps students and job seekers crack interviews and competitive exams. Face-to-face AI interviews, 5000+ exam questions (TCS, Infosys, UPSC, SSC, IBPS, SBI, GATE, CAT and more), adaptive practice, and instant scoring.",
   keywords: [
-    "AI interview",
+    "PrepMate",
+    "interview preparation",
+    "competitive exam practice",
     "mock interview",
-    "resume analyzer",
-    "face to face AI interview",
-    "interview prep",
-    "Google interview",
-    "Amazon interview",
-    "TCS interview",
-    "Infosys interview",
+    "TCS NQT",
+    "IBPS",
+    "SSC CGL",
+    "UPSC",
+    "GATE",
+    "aptitude test",
   ],
 };
 

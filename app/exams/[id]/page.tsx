@@ -75,6 +75,9 @@ export default function TakeExamPage() {
     let serverAttemptId: number | null = null;
     if (isOnline() && user) {
       try {
+        const sectionScores = Object.fromEntries(
+          result.sectionScores.map((s) => [s.section, { correct: s.correct, total: s.total }]),
+        );
         const res = await api.submitExam(exam.id, {
           answers: exam.questions.map((qq) => ({
             question_id: qq.id,
@@ -82,6 +85,12 @@ export default function TakeExamPage() {
             time_taken: 0,
           })),
           duration_sec: durationSec,
+          // Send the client-computed result — the bank's question ids aren't in
+          // the DB, so the server trusts this summary for XP / leaderboard / admin.
+          client_score: result.score,
+          client_correct: result.correct,
+          client_total: result.total,
+          client_section_scores: sectionScores,
         });
         serverAttemptId = typeof res?.attempt_id === "number" ? res.attempt_id : null;
       } catch {

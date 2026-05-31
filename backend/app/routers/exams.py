@@ -70,7 +70,21 @@ def submit_exam(
             correct += 1
 
     total = len(qmap)
-    score = round(correct * 100 / total) if total else 0
+
+    # Prefer the client-computed summary when supplied. The frontend builds
+    # questions from a large deterministic bank whose ids aren't stored in the DB,
+    # so server-side re-grading would otherwise see no matches and report 0.
+    if payload.client_total:
+        total = payload.client_total
+        correct = payload.client_correct if payload.client_correct is not None else correct
+        if payload.client_section_scores:
+            section_scores = payload.client_section_scores
+
+    score = (
+        payload.client_score
+        if payload.client_score is not None
+        else (round(correct * 100 / total) if total else 0)
+    )
     accuracy = round(correct / total * 100, 1) if total else 0.0
 
     attempt_id: int | None = None

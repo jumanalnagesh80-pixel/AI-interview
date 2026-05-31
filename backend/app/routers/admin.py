@@ -1,11 +1,11 @@
-"""Admin-only router — restricted to users with role in {admin, owner}."""
+"""Owner-only admin router — restricted to the single owner account (NAGESH JUMANAL)."""
 from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import desc, func
 from sqlalchemy.orm import Session
 
-from ..auth import get_admin_user
+from ..auth import get_owner_user
 from ..config import get_settings
 from ..database import get_db
 from ..models import (
@@ -23,8 +23,9 @@ settings = get_settings()
 
 
 @router.get("/overview")
-def overview(_: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+def overview(_: User = Depends(get_owner_user), db: Session = Depends(get_db)):
     week_ago = datetime.utcnow() - timedelta(days=7)
+    day_ago = datetime.utcnow() - timedelta(days=1)
     return {
         "owner": {"name": settings.owner_name, "email": settings.owner_email},
         "totals": {
@@ -42,18 +43,58 @@ def overview(_: User = Depends(get_admin_user), db: Session = Depends(get_db)):
             "interview_sessions": db.query(func.count(SessionModel.id)).filter(SessionModel.created_at >= week_ago).scalar() or 0,
             "practice_answers": db.query(func.count(PracticeAnswer.id)).filter(PracticeAnswer.created_at >= week_ago).scalar() or 0,
         },
+        "today": {
+            "signups": db.query(func.count(User.id)).filter(User.created_at >= day_ago).scalar() or 0,
+            "logins": db.query(func.count(User.id)).filter(User.last_login_at >= day_ago).scalar() or 0,
+        },
     }
 
 
 @router.get("/users", response_model=list[UserOut])
-def list_users(_: User = Depends(get_admin_user), db: Session = Depends(get_db)):
-    return db.query(User).order_by(desc(User.xp)).limit(200).all()
+def list_users(_: User = Depends(get_owner_user), db: Session = Depends(get_db)):
+    return db.query(User).order_by(desc(User.created_at)).limit(500).all()
+
+
+@router.get("/activity")
+def activity(_: User = Depends(get_owner_user), db: Session = Depends(get_db)):
+    """Who signed up and who logged in — the owner's at-a-glance audit feed."""
+    signups = (
+        db.query(User).order_by(desc(User.created_at)).limit(40).all()
+    )
+    logins = (
+        db.query(User)
+        .filter(User.last_login_at.isnot(None))
+        .order_by(desc(User.last_login_at))
+        .limit(40)
+        .all()
+    )
+    return {
+        "recent_signups": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "role": u.role,
+                "plan": u.plan,
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+            }
+            for u in signups
+        ],
+        "recent_logins": [
+            {
+                "id": u.id,
+                "name": u.name,
+                "email": u.email,
+                "role": u.role,
+                "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
+            }
+            for u in logins
+        ],
+    }
 
 
 @router.post("/users/{user_id}/promote", response_model=UserOut)
-def promote(user_id: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
-    if admin.role != "owner":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the owner can change roles")
+def promote(user_id: int, admin: User = Depends(get_owner_user), db: Session = Depends(get_db)):
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -66,9 +107,7 @@ def promote(user_id: int, admin: User = Depends(get_admin_user), db: Session = D
 
 
 @router.post("/users/{user_id}/demote", response_model=UserOut)
-def demote(user_id: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
-    if admin.role != "owner":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the owner can change roles")
+def demote(user_id: int, admin: User = Depends(get_owner_user), db: Session = Depends(get_db)):
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -81,9 +120,7 @@ def demote(user_id: int, admin: User = Depends(get_admin_user), db: Session = De
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_user(user_id: int, admin: User = Depends(get_admin_user), db: Session = Depends(get_db)):
-    if admin.role != "owner":
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Only the owner can delete users")
+def delete_user(user_id: int, admin: User = Depends(get_owner_user), db: Session = Depends(get_db)):
     target = db.get(User, user_id)
     if target is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "User not found")
@@ -95,7 +132,7 @@ def delete_user(user_id: int, admin: User = Depends(get_admin_user), db: Session
 
 
 @router.get("/recent-attempts")
-def recent_attempts(_: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+def recent_attempts(_: User = Depends(get_owner_user), db: Session = Depends(get_db)):
     rows = (
         db.query(ExamAttempt, User, Exam)
         .join(User, ExamAttempt.user_id == User.id)

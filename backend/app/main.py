@@ -62,7 +62,7 @@ async def lifespan(_: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version="0.1.0",
-    description="AceTerview API - AI interview prep + competitive exams.",
+    description="PrepMate API - AI interview prep + competitive exams.",
     lifespan=lifespan,
 )
 

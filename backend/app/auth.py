@@ -76,3 +76,10 @@ def get_admin_user(user: User = Depends(get_current_user)) -> User:
     if user.role not in ("admin", "owner"):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Admin access required")
     return user
+
+
+def get_owner_user(user: User = Depends(get_current_user)) -> User:
+    """Allow only the single owner account. Used to gate the private admin channel."""
+    if user.role != "owner":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Owner access only")
+    return user

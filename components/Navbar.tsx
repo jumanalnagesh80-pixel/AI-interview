@@ -30,7 +30,7 @@ import { cn } from "@/lib/utils";
 import {
   getStoredUser,
   logout as apiLogout,
-  isAdmin as isAdminUser,
+  isOwner as isAdminUser,
   type AuthUser,
 } from "@/lib/api";
 

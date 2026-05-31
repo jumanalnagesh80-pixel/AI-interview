@@ -37,7 +37,7 @@ export function Showcase() {
 
       <div className="relative flex h-full flex-col gap-6">
         <div className="flex items-center justify-between text-xs">
-          <span className="chip"><Sparkles className="h-3 w-3 text-brand-400" /> AceTerview AI</span>
+          <span className="chip"><Sparkles className="h-3 w-3 text-brand-400" /> PrepMate AI</span>
           <span className="chip"><ShieldCheck className="h-3 w-3 text-success" /> Privacy-first</span>
         </div>
 

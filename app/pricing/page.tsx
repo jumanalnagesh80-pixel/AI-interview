@@ -77,7 +77,7 @@ const TIERS = [
 
 const FAQS = [
   {
-    q: "Do I need a credit card to try AceTerview?",
+    q: "Do I need a credit card to try PrepMate?",
     a: "No. The Starter tier is free forever — including 3 face-to-face sessions every month.",
   },
   {
