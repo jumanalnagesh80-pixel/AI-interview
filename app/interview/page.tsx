@@ -14,6 +14,7 @@ import {
   Settings,
   Sparkles,
   Volume2,
+  RotateCw,
   VolumeX,
   Activity,
   Eye,
@@ -25,10 +26,12 @@ import {
 } from "lucide-react";
 import { AIAvatar } from "@/components/AIAvatar";
 import { WebcamPanel } from "@/components/WebcamPanel";
+import { GuestBanner } from "@/components/GuestBanner";
 import { ProgressRing } from "@/components/ProgressRing";
 import { QUESTIONS, ROLES, COMPANIES, type Round, type Role } from "@/lib/data";
 import { scoreAnswer, type ScoreBreakdown } from "@/lib/scoring";
-import { speak, cancelSpeech, createRecognition } from "@/lib/speech";
+import { speak, cancelSpeech, createRecognition, primeSpeech } from "@/lib/speech";
+import { getStoredUser } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Phase = "setup" | "live" | "summary";
@@ -88,6 +91,9 @@ export default function FaceToFaceInterviewPage() {
   }, [phase]);
 
   const start = async () => {
+    // Warm up the speech engine on this user gesture so the first question
+    // plays instantly and clearly (unlocks autoplay + preloads voices).
+    if (voiceOn) void primeSpeech();
     setPhase("live");
     setQIndex(0);
     setTurns([]);
@@ -167,6 +173,15 @@ export default function FaceToFaceInterviewPage() {
     if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     recRef.current?.stop();
     setListening(false);
+  };
+
+  // Re-speak the current question on demand (clear playback, no turn reset).
+  const replayQuestion = async () => {
+    if (!currentQ) return;
+    cancelSpeech();
+    setAiSpeaking(true);
+    await speak(currentQ.text);
+    setAiSpeaking(false);
   };
 
   const submitAnswer = async () => {
@@ -289,7 +304,17 @@ export default function FaceToFaceInterviewPage() {
           <div className="relative flex w-full flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-brand-500/5 via-transparent to-accent-500/5 p-8">
             <AIAvatar speaking={aiSpeaking} listening={listening && !aiSpeaking} size={280} name="Aria" />
             <div className="mt-6 w-full max-w-2xl rounded-xl border border-white/10 bg-ink-900/60 p-4">
-              <p className="text-xs uppercase tracking-widest text-white/45">Question {qIndex + 1} of {Math.min(pool.length, 4)}</p>
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-xs uppercase tracking-widest text-white/45">Question {qIndex + 1} of {Math.min(pool.length, 4)}</p>
+                <button
+                  onClick={replayQuestion}
+                  disabled={aiSpeaking}
+                  className="btn-soft shrink-0 px-2 py-1 text-[11px] disabled:opacity-40"
+                  title="Replay the question audio"
+                >
+                  <RotateCw className="h-3 w-3" /> Replay
+                </button>
+              </div>
               <p className="mt-1 text-base text-white/90">{currentQ.text}</p>
               <div className="mt-3 flex items-center gap-2">
                 <span className="chip">{currentQ.difficulty}</span>
@@ -427,6 +452,12 @@ function SetupScreen({
           </p>
         </div>
       </div>
+
+      {!getStoredUser() && (
+        <div className="mt-6">
+          <GuestBanner message="Free face-to-face interview — no account needed. Sign in to save your session report and track progress." />
+        </div>
+      )}
 
       <div className="mt-8 grid gap-6 lg:grid-cols-3">
         {/* Avatar preview */}

@@ -25,6 +25,7 @@ import { EXAMS, type ExamQuestion } from "@/lib/exams";
 import { api, isOnline, getStoredUser } from "@/lib/api";
 import { ConfettiBurst, type ConfettiHandle } from "@/components/ConfettiBurst";
 import { LiquidBlob } from "@/components/LiquidBlob";
+import { GuestBanner } from "@/components/GuestBanner";
 import { cn } from "@/lib/utils";
 
 type Section = "Mixed" | "Quantitative" | "Logical Reasoning" | "Verbal English" | "Programming" | "Pseudocode";
@@ -465,6 +466,12 @@ function SectionPicker({ onPick }: { onPick: (sec: Section) => void }) {
           <Layers className="h-4 w-4" /> Timed mock exams
         </Link>
       </div>
+
+      {!getStoredUser() && (
+        <div className="mt-6">
+          <GuestBanner message="Practice is free for everyone. Sign in to track streaks, XP and your weakest-topic analytics." />
+        </div>
+      )}
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {SECTIONS.map((s) => {
