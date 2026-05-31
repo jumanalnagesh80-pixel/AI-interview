@@ -61,7 +61,34 @@ export const QUESTIONS: Question[] = [
 
   // Coding
   { id: "co-1", round: "Coding", difficulty: "Easy", text: "Write a function that reverses a string in-place.", tags: ["string"], expected: ["two pointer", "O(n)"] },
-  { id: "co-2", round: "Coding", difficulty: "Medium", text: "Find the first non-repeating character in a string.", tags: ["string", "hashmap"], expected: ["hashmap", "single pass"] },
+  { id: "co-2", round: "Coding", difficulty: "Medium", text: "Given an array, find the two numbers that add up to a target.", tags: ["array", "hashmap"], expected: ["hashmap", "complement", "O(n)"] },
+  { id: "co-3", round: "Coding", difficulty: "Medium", text: "Detect whether a linked list has a cycle.", tags: ["linked-list"], expected: ["fast slow pointers", "Floyd", "O(1) space"] },
+  { id: "co-4", round: "Coding", difficulty: "Hard", text: "Find the longest substring without repeating characters.", tags: ["string", "sliding-window"], expected: ["sliding window", "set", "two pointers"] },
+
+  // More HR
+  { id: "hr-6", round: "HR", difficulty: "Easy", text: "Tell me about yourself.", tags: ["intro"], expected: ["pitch", "experience", "goal"] },
+  { id: "hr-7", round: "HR", difficulty: "Medium", text: "What motivates you at work?", tags: ["motivation"], expected: ["intrinsic", "growth", "impact"] },
+  { id: "hr-8", round: "HR", difficulty: "Medium", text: "How do you handle criticism and feedback?", tags: ["feedback"], expected: ["openness", "action", "growth"] },
+  { id: "hr-9", round: "HR", difficulty: "Medium", text: "Why are you leaving your current role?", tags: ["transition"], expected: ["positive framing", "growth", "no blame"] },
+  { id: "hr-10", round: "HR", difficulty: "Easy", text: "What are your salary expectations?", tags: ["negotiation"], expected: ["research", "range", "flexibility"] },
+
+  // More Behavioral (STAR)
+  { id: "bh-5", round: "Behavioral", difficulty: "Medium", text: "Tell me about a time you went above and beyond for a customer or teammate.", tags: ["STAR", "ownership"], expected: ["Situation", "Action", "Result", "impact"] },
+  { id: "bh-6", round: "Behavioral", difficulty: "Medium", text: "Describe a time you had to learn something new quickly.", tags: ["STAR", "learning"], expected: ["approach", "resources", "outcome"] },
+  { id: "bh-7", round: "Behavioral", difficulty: "Hard", text: "Tell me about a time you disagreed with your manager.", tags: ["STAR", "backbone"], expected: ["respectful", "data", "resolution"] },
+  { id: "bh-8", round: "Behavioral", difficulty: "Medium", text: "Give an example of a goal you set and how you achieved it.", tags: ["STAR", "goals"], expected: ["specific goal", "plan", "measurable result"] },
+
+  // More Technical
+  { id: "tech-6", round: "Technical", difficulty: "Easy", text: "What is the difference between a process and a thread?", tags: ["os"], expected: ["memory", "scheduling", "isolation"] },
+  { id: "tech-7", round: "Technical", difficulty: "Medium", text: "Explain how a hash map works and when collisions happen.", tags: ["dsa"], expected: ["hashing", "buckets", "chaining", "O(1)"] },
+  { id: "tech-8", round: "Technical", difficulty: "Medium", text: "What is database indexing and what are its trade-offs?", tags: ["db"], expected: ["B-tree", "read vs write", "storage"] },
+  { id: "tech-9", round: "Technical", difficulty: "Medium", text: "Explain the difference between authentication and authorization.", tags: ["security"], expected: ["identity", "permissions", "tokens"] },
+  { id: "tech-10", round: "Technical", difficulty: "Hard", text: "How does HTTPS keep a connection secure?", tags: ["security", "web"], expected: ["TLS handshake", "certificates", "encryption"] },
+
+  // More System Design
+  { id: "sd-3", round: "System Design", difficulty: "Hard", text: "Design a rate limiter for a public API.", tags: ["design"], expected: ["token bucket", "sliding window", "redis"] },
+  { id: "sd-4", round: "System Design", difficulty: "Hard", text: "Design a news feed like Instagram or Twitter.", tags: ["design", "scale"], expected: ["fanout", "cache", "ranking", "pagination"] },
+  { id: "sd-5", round: "System Design", difficulty: "Hard", text: "Design a parking-lot management system.", tags: ["design", "oop"], expected: ["entities", "pricing", "availability"] },
 ];
 
 export const COMPANIES = [

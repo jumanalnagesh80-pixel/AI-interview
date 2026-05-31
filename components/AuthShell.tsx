@@ -46,7 +46,7 @@ export function AuthShell({ title, subtitle, children, footer }: Props) {
           <div className="absolute inset-0 bg-grid opacity-50" />
           <div className="relative flex h-full flex-col items-center justify-between gap-6">
             <div className="flex w-full items-center justify-between text-xs text-white/55">
-              <span className="chip"><Sparkles className="h-3 w-3 text-brand-400" /> AceTerview AI</span>
+              <span className="chip"><Sparkles className="h-3 w-3 text-brand-400" /> PrepMate AI</span>
               <span className="chip"><ShieldCheck className="h-3 w-3 text-success" /> Privacy-first</span>
             </div>
 

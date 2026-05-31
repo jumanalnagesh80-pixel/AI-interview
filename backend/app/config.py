@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-    app_name: str = "AceTerview API"
+    app_name: str = "PrepMate API"
     environment: str = "dev"
     owner_name: str = "NAGESH JUMANAL"
     owner_email: str = "nagesh.jumanal@aceterview.app"

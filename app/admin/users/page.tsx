@@ -16,7 +16,7 @@ import {
   Zap,
   AlertTriangle,
 } from "lucide-react";
-import { adminApi, getStoredUser, isAdmin, isOwner, isOnline, type AuthUser } from "@/lib/api";
+import { adminApi, getStoredUser, isOwner, isOnline, type AuthUser } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 export default function AdminUsersPage() {
@@ -32,7 +32,7 @@ export default function AdminUsersPage() {
   }, []);
 
   useEffect(() => {
-    if (!me || !isAdmin(me)) return;
+    if (!me || !isOwner(me)) return;
     setLoading(true);
     adminApi
       .users()
@@ -50,7 +50,7 @@ export default function AdminUsersPage() {
   if (!me) {
     return <Gate title="Sign-in required" cta="Sign in" href="/login" />;
   }
-  if (!isAdmin(me)) {
+  if (!isOwner(me)) {
     return <Gate title="Admin only" cta="Back to dashboard" href="/dashboard" />;
   }
   if (!isOnline()) {

@@ -29,7 +29,7 @@ export function AuthLayout({ initialTab = "login" }: { initialTab?: "login" | "r
           <div className="mt-10 max-w-md">
             <span className="chip">
               <span className="h-1.5 w-1.5 rounded-full bg-brand-400 live-dot" />
-              {initialTab === "login" ? "Welcome to AceTerview" : "Join 120k+ candidates"}
+              {initialTab === "login" ? "Welcome to PrepMate" : "Join 120k+ candidates"}
             </span>
             <h1 className="mt-4 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">
               {initialTab === "login" ? "One step closer to your offer" : "Practice. Score. Get hired."}

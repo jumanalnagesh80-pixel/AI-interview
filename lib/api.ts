@@ -19,6 +19,7 @@ export interface AuthUser {
   xp: number;
   streak_days: number;
   avatar_url: string | null;
+  last_login_at?: string | null;
   created_at: string;
 }
 
@@ -92,7 +93,14 @@ export const api = {
   getExam: (id: string) => request<any>(`/api/exams/${id}`, { auth: false }),
   submitExam: (
     id: string,
-    payload: { answers: { question_id: string; picked: number; time_taken?: number }[]; duration_sec: number },
+    payload: {
+      answers: { question_id: string; picked: number; time_taken?: number }[];
+      duration_sec: number;
+      client_score?: number;
+      client_correct?: number;
+      client_total?: number;
+      client_section_scores?: Record<string, { correct: number; total: number }>;
+    },
   ) => request<any>(`/api/exams/${id}/submit`, { method: "POST", body: JSON.stringify(payload) }),
   getAttempt: (attemptId: number) => request<any>(`/api/exams/attempts/${attemptId}`),
 
@@ -151,6 +159,7 @@ export const adminApi = {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
     }),
   recentAttempts: () => fetch(`${API_URL}/api/admin/recent-attempts`, authHeaders()).then(asJson),
+  activity: () => fetch(`${API_URL}/api/admin/activity`, authHeaders()).then(asJson),
 };
 
 function authHeaders(): RequestInit {

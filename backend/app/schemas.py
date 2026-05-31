@@ -26,6 +26,7 @@ class UserOut(BaseModel):
     xp: int
     streak_days: int
     avatar_url: str | None = None
+    last_login_at: datetime | None = None
     created_at: datetime
 
 
@@ -162,6 +163,13 @@ class ExamSubmitAnswer(BaseModel):
 class ExamSubmitRequest(BaseModel):
     answers: list[ExamSubmitAnswer]
     duration_sec: int = 0
+    # Optional client-computed summary. The frontend generates questions from a
+    # large deterministic bank whose ids may not exist server-side, so when these
+    # are provided we trust and persist them instead of re-grading from the DB.
+    client_score: int | None = None
+    client_correct: int | None = None
+    client_total: int | None = None
+    client_section_scores: dict[str, dict[str, int]] | None = None
 
 
 class ExamGradedAnswer(BaseModel):
