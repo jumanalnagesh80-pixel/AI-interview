@@ -101,7 +101,7 @@ def next_batch(
 @router.post("/answer", response_model=PracticeAnswerResult)
 def submit_answer(
     payload: PracticeAnswerSubmit,
-    user: User = Depends(get_current_user),
+    user: User | None = Depends(get_optional_user),
     db: Session = Depends(get_db),
 ):
     q = db.get(ExamQuestion, payload.question_id)
@@ -109,6 +109,17 @@ def submit_answer(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Question not found")
 
     is_correct = payload.picked == q.correct_index
+
+    # Guests can practice freely — we just don't persist or award XP for them.
+    if user is None:
+        return PracticeAnswerResult(
+            question_id=q.id,
+            is_correct=is_correct,
+            correct_index=q.correct_index,
+            explanation=q.explanation or "",
+            streak=1 if is_correct else 0,
+            xp_awarded=0,
+        )
 
     # Compute current streak (consecutive correct answers ending at this one)
     last = (

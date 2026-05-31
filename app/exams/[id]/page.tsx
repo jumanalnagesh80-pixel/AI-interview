@@ -25,6 +25,8 @@ import { HoloRing } from "@/components/HoloRing";
 import { ConfettiBurst, type ConfettiHandle } from "@/components/ConfettiBurst";
 import { LiquidBlob } from "@/components/LiquidBlob";
 import { getExam, type Exam, type ExamQuestion } from "@/lib/exams";
+import { api, getStoredUser, isOnline } from "@/lib/api";
+import { GuestBanner } from "@/components/GuestBanner";
 import { cn } from "@/lib/utils";
 
 type Phase = "intro" | "running" | "result";
@@ -45,28 +47,36 @@ export default function TakeExamPage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const startedAtRef = useRef<number>(0);
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const submittedRef = useRef(false);
+  const [timedOut, setTimedOut] = useState(false);
 
   // start the timer when exam begins
   useEffect(() => {
     if (phase !== "running" || !exam) return;
+    submittedRef.current = false;
     setSecondsLeft(exam.duration_min * 60);
     startedAtRef.current = Date.now();
     tickRef.current && clearInterval(tickRef.current);
     tickRef.current = setInterval(() => {
-      setSecondsLeft((s) => {
-        if (s <= 1) {
-          clearInterval(tickRef.current!);
-          submitNow();
-          return 0;
-        }
-        return s - 1;
-      });
+      // Pure countdown only — no side effects inside the state updater.
+      setSecondsLeft((s) => (s <= 1 ? 0 : s - 1));
     }, 1000);
     return () => {
       tickRef.current && clearInterval(tickRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, exam?.id]);
+
+  // Auto-submit exactly once when the clock hits zero (side effect lives here,
+  // not inside the setState updater, to avoid cross-render update warnings).
+  useEffect(() => {
+    if (phase === "running" && secondsLeft === 0 && !submittedRef.current) {
+      submittedRef.current = true;
+      setTimedOut(true);
+      tickRef.current && clearInterval(tickRef.current);
+      setPhase("result");
+    }
+  }, [phase, secondsLeft]);
 
   if (!exam) {
     return (
@@ -76,6 +86,20 @@ export default function TakeExamPage() {
           <p className="mt-3 text-sm text-white/70">Exam not found.</p>
           <Link href="/exams" className="btn-primary mt-4">
             <ArrowRight className="h-4 w-4" /> Back to exams
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  if (!exam.questions || exam.questions.length === 0) {
+    return (
+      <div className="mx-auto grid min-h-[60vh] max-w-md place-items-center px-4 text-center">
+        <div className="card">
+          <AlertTriangle className="mx-auto h-6 w-6 text-warn" />
+          <p className="mt-3 text-sm text-white/70">This exam has no questions yet. Please try another.</p>
+          <Link href="/exams" className="btn-primary mt-4">
+            <ArrowRight className="h-4 w-4" /> Browse exams
           </Link>
         </div>
       </div>
@@ -100,6 +124,8 @@ export default function TakeExamPage() {
   const goto = (idx: number) => setCurrent(Math.max(0, Math.min(totalQ - 1, idx)));
 
   const submitNow = () => {
+    submittedRef.current = true;
+    tickRef.current && clearInterval(tickRef.current);
     setPhase("result");
   };
 
@@ -111,10 +137,13 @@ export default function TakeExamPage() {
       <ResultScreen
         exam={exam}
         answers={answers}
+        timedOut={timedOut}
         elapsedSec={Math.max(0, exam.duration_min * 60 - secondsLeft)}
         onRetry={() => {
           setAnswers({});
           setCurrent(0);
+          setTimedOut(false);
+          submittedRef.current = false;
           setPhase("running");
         }}
       />
@@ -356,28 +385,74 @@ function Mini({ label, value }: { label: string; value: string }) {
   );
 }
 
+function SaveStatus({ state }: { state: "idle" | "saving" | "saved" | "guest" | "error" }) {
+  if (state === "idle") return null;
+  const map = {
+    saving: { cls: "border-white/10 bg-white/5 text-white/60", dot: "bg-brand-400 animate-pulse", label: "Saving attempt…" },
+    saved: { cls: "border-success/30 bg-success/10 text-success", dot: "bg-success", label: "Saved to your history" },
+    guest: { cls: "border-warn/30 bg-warn/10 text-warn", dot: "bg-warn", label: "Guest mode — not saved" },
+    error: { cls: "border-danger/30 bg-danger/10 text-danger", dot: "bg-danger", label: "Couldn't save — shown locally" },
+  } as const;
+  const m = map[state];
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs ${m.cls}`}>
+      <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
+      {m.label}
+    </span>
+  );
+}
+
 /* ---------------- Result ---------------- */
 
 function ResultScreen({
   exam,
   answers,
   elapsedSec,
+  timedOut,
   onRetry,
 }: {
   exam: Exam;
   answers: Record<string, Picked>;
   elapsedSec: number;
+  timedOut?: boolean;
   onRetry: () => void;
 }) {
+  const totalQ = exam.questions.length;
   const graded = exam.questions.map((q) => {
     const picked = answers[q.id]?.picked ?? -1;
     return { q, picked, isCorrect: picked === q.correct_index };
   });
   const correct = graded.filter((g) => g.isCorrect).length;
-  const totalQ = exam.questions.length;
-  const score = Math.round((correct / totalQ) * 100);
-  const accuracy = Math.round((correct / totalQ) * 1000) / 10;
+  const score = totalQ ? Math.round((correct / totalQ) * 100) : 0;
+  const accuracy = totalQ ? Math.round((correct / totalQ) * 1000) / 10 : 0;
   const skipped = graded.filter((g) => g.picked < 0).length;
+
+  // Persist the attempt to the backend so it counts toward XP / leaderboard /
+  // analytics — but only for signed-in users. Guests still see full results.
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "guest" | "error">("idle");
+  const savedRef = useRef(false);
+  useEffect(() => {
+    if (savedRef.current) return;
+    savedRef.current = true;
+    const user = getStoredUser();
+    if (!isOnline() || !user) {
+      setSaveState("guest");
+      return;
+    }
+    setSaveState("saving");
+    const payload = {
+      answers: exam.questions.map((q) => ({
+        question_id: q.id,
+        picked: answers[q.id]?.picked ?? -1,
+        time_taken: 0,
+      })),
+      duration_sec: elapsedSec,
+    };
+    api
+      .submitExam(exam.id, payload)
+      .then(() => setSaveState("saved"))
+      .catch(() => setSaveState("error"));
+  }, [exam, answers, elapsedSec]);
 
   const sectionScores = useMemo(() => {
     const map: Record<string, { correct: number; total: number }> = {};
@@ -414,13 +489,23 @@ function ResultScreen({
         <div>
           <span className="chip"><CheckCircle2 className="h-3 w-3 text-success" /> Result</span>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-gradient sm:text-4xl">{exam.name} — calibrated</h1>
-          <p className="mt-1 text-white/60">Solo session · {fmt(elapsedSec)} elapsed</p>
+          <p className="mt-1 text-white/60">
+            Solo session · {fmt(elapsedSec)} elapsed
+            {timedOut && <span className="ml-2 text-warn">· auto-submitted (time up)</span>}
+          </p>
+          <div className="mt-2"><SaveStatus state={saveState} /></div>
         </div>
         <div className="flex flex-wrap gap-2">
           <button onClick={onRetry} className="btn-ghost"><RefreshCcw className="h-4 w-4" /> Retake</button>
           <Link href="/leaderboard" className="btn-primary"><Trophy className="h-4 w-4" /> Leaderboard</Link>
         </div>
       </div>
+
+      {saveState === "guest" && (
+        <div className="mt-4">
+          <GuestBanner message="You're in guest mode — this attempt isn't saved. Sign in to record it to your history, XP and the leaderboard." />
+        </div>
+      )}
 
       {/* Top stats */}
       <div className="mt-6 grid gap-4 lg:grid-cols-4">
